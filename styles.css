@@ -519,3 +519,64 @@ button.calendar-day:active { transform: scale(.95); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 
+/* --- 1.2.0: statystyki, szybki wpis, kalendarz, dostępność --- */
+.year-compare { margin: 8px 4px 0; color: var(--muted); font-size: .78rem; text-align: right; }
+.year-compare:empty { display: none; }
+.year-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.year-tiles div { display: flex; flex-direction: column; gap: 3px; padding: 13px 15px; border-radius: 18px; background: var(--surface); box-shadow: 0 3px 14px rgba(15,23,42,.035); }
+.year-tiles strong { font-size: 1.25rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.year-tiles span { color: var(--muted); font-size: .76rem; }
+.bar-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: -6px 0 6px; color: var(--muted); font-size: .72rem; }
+.bar-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.bar-legend i { width: 14px; height: 6px; border-radius: 3px; }
+.bar-legend i.regular { background: var(--blue); }
+.bar-legend i.overtime { background: var(--orange); }
+.bar-legend i.norm { width: 2px; height: 12px; background: var(--text); opacity: .55; }
+.monthly-note { margin: 0 0 14px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.month-list { gap: 4px; }
+button.month-row { width: 100%; min-height: 44px; padding: 0 6px; margin: 0 -6px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; grid-template-columns: 82px minmax(50px, 1fr) 66px; }
+button.month-row:hover { background: var(--control); }
+button.month-row.future { opacity: .55; }
+button.month-row.current .month-name { color: var(--blue); }
+.month-track { position: relative; display: flex; height: 10px; }
+.month-bar { flex: 0 0 auto; border-radius: 0; transition: width .25s ease; }
+.month-bar.regular { background: linear-gradient(90deg, var(--blue), #69a9ff); }
+.month-bar.overtime { background: var(--orange); }
+.month-norm { position: absolute; top: -1px; bottom: -1px; width: 2px; margin-left: -1px; background: var(--text); opacity: .55; }
+.month-hours { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; line-height: 1.15; }
+.month-hours small:empty { display: none; }
+.month-hours small { color: var(--muted); font-size: .68rem; font-weight: 700; }
+.month-hours small.over { color: var(--blue); }
+.month-hours small.under { color: var(--orange); }
+
+.missing-days { display: flex; align-items: center; gap: 8px; margin: 0 2px 6px; flex: 0 0 auto; }
+.missing-days > span { flex: 0 0 auto; color: var(--muted); font-size: .72rem; font-weight: 700; }
+.missing-days-list { display: flex; gap: 6px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+.missing-days-list::-webkit-scrollbar { display: none; }
+.missing-days-list button { flex: 0 0 auto; min-height: 34px; padding: 0 12px; border: 1px dashed var(--blue); border-radius: 12px; background: var(--blue-soft); color: var(--blue); cursor: pointer; font-size: .78rem; font-weight: 800; white-space: nowrap; }
+.missing-days-list button:active { transform: scale(.96); }
+
+.calendar-day::before { position: absolute; top: 3px; left: 5px; font-size: .56rem; font-weight: 800; line-height: 1; opacity: .85; }
+.calendar-day.work::before { content: 'P'; }
+.calendar-day.vacation::before { content: 'U'; }
+.calendar-day.sick::before { content: 'C'; }
+.calendar-day.child_sick::before { content: 'D'; }
+.calendar-day.holiday::before { content: 'Ś'; }
+button.calendar-day.empty { border-style: dashed; border-color: var(--line); background: transparent; cursor: pointer; }
+button.calendar-day.empty:hover { border-color: var(--blue); color: var(--blue); }
+.calendar-legend span { white-space: nowrap; }
+
+button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.year-picker { grid-template-columns: 44px 54px 44px; }
+.year-picker button { height: 44px; }
+.stepper { grid-template-columns: 44px 62px 44px; }
+.stepper button { height: 44px; }
+.calendar-toolbar { grid-template-columns: 44px 1fr 44px; }
+.calendar-toolbar > button { min-height: 44px; }
+@media (max-width: 600px) {
+  .records .section-heading { flex-basis: 30px; }
+  .add-entry-button { min-height: 30px; }
+  .stepper { grid-template-columns: 40px 54px 40px; }
+  .stepper button { height: 40px; }
+  .missing-days-list button { min-height: 30px; padding: 0 10px; }
+}

@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.1.0';
+  const APP_VERSION = '1.2.0';
   const APP_BUILD = '2026-10-27';
   const MAX_ENTRIES = 20000;
   const KINDS = ['work', 'vacation', 'sick', 'holiday', 'child_sick'];
@@ -315,10 +315,33 @@
         ${hours}<span class="chevron" aria-hidden="true">›</span>
       </button>`;
     }).join('');
+    renderMissingDays();
     renderStatistics();
     renderVacations();
     renderCalendar();
     renderSettings();
+  }
+
+  function missingScheduledDays() {
+    const days = scheduledDays();
+    const start = selectedWeekStart();
+    const keys = [];
+    for (let index = 0; index < 7; index += 1) {
+      const date = addDays(start, index);
+      const key = localDateKey(date);
+      if (days.includes(date.getDay()) && (!entries[key] || entries[key].deleted)) keys.push(key);
+    }
+    return keys;
+  }
+
+  function renderMissingDays() {
+    const missing = missingScheduledDays();
+    $('missingDays').hidden = missing.length === 0;
+    $('missingDaysList').innerHTML = missing.map((key) => {
+      const date = dateFromKey(key);
+      const spoken = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+      return `<button type="button" data-add-day="${key}" aria-label="Dodaj dzień pracy: ${spoken}">${WEEKDAYS[date.getDay()]} ${date.getDate()}</button>`;
+    }).join('');
   }
 
   function renderCalendar() {
@@ -345,7 +368,7 @@
       if (entry) {
         cells.push(`<button class="calendar-day ${entry.kind}${todayClass}" type="button" data-calendar-key="${key}" aria-label="${day} ${MONTHS[month].toLowerCase()} ${year}: ${KIND_LABELS[entry.kind]}"><span>${day}</span></button>`);
       } else {
-        cells.push(`<span class="calendar-day empty${todayClass}"><span>${day}</span></span>`);
+        cells.push(`<button class="calendar-day empty${todayClass}" type="button" data-calendar-add="${key}" aria-label="Dodaj wpis: ${day} ${MONTHS[month].toLowerCase()} ${year}"><span>${day}</span></button>`);
       }
     }
 
@@ -684,24 +707,87 @@
       : 'Automat jest wyłączony — wpisy dodajesz ręcznie w zakładce Tydzień.';
   }
 
+  function scheduledDays() {
+    return settings.workdays.length ? settings.workdays : [1, 2, 3, 4, 5];
+  }
+
+  function monthNorm(year, month) {
+    const days = scheduledDays();
+    const last = new Date(year, month + 1, 0, 12).getDate();
+    let count = 0;
+    for (let day = 1; day <= last; day += 1) {
+      const date = new Date(year, month, day, 12);
+      if (!days.includes(date.getDay())) continue;
+      const entry = entries[localDateKey(date)];
+      if (entry && !entry.deleted && entry.kind !== 'work') continue;
+      count += 1;
+    }
+    return count * settings.regularHours;
+  }
+
   function renderStatistics() {
-    const monthly = Array(12).fill(0);
+    const now = new Date();
+    const todayKey = localDateKey(now);
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const monthly = Array.from({ length: 12 }, () => ({ regular: 0, overtime: 0, entries: 0 }));
+    let vacationDays = 0;
+    let sickDays = 0;
+    let workDays = 0;
+    let previousTotal = 0;
     Object.values(entries).forEach((entry) => {
-      if (entry.deleted || entry.kind !== 'work') return;
+      if (entry.deleted) return;
       const date = dateFromKey(entry.date);
-      if (date.getFullYear() === statisticsYear) monthly[date.getMonth()] += entry.regular + entry.overtime;
+      const year = date.getFullYear();
+      if (entry.kind === 'work' && year === statisticsYear - 1) previousTotal += entry.regular + entry.overtime;
+      if (year !== statisticsYear) return;
+      const bucket = monthly[date.getMonth()];
+      bucket.entries += 1;
+      if (entry.kind === 'work') {
+        bucket.regular += entry.regular;
+        bucket.overtime += entry.overtime;
+        workDays += 1;
+      } else if (entry.date <= todayKey) {
+        if (entry.kind === 'vacation') vacationDays += 1;
+        else if (entry.kind === 'sick' || entry.kind === 'child_sick') sickDays += 1;
+      }
     });
-    const max = Math.max(...monthly, 1);
-    const total = monthly.reduce((sum, value) => sum + value, 0);
+    const overtimeTotal = monthly.reduce((sum, bucket) => sum + bucket.overtime, 0);
+    const total = monthly.reduce((sum, bucket) => sum + bucket.regular + bucket.overtime, 0);
     $('statisticsYear').textContent = statisticsYear;
-    $('nextYear').disabled = statisticsYear >= new Date().getFullYear();
+    $('nextYear').disabled = statisticsYear >= currentYear;
     $('yearHours').textContent = formatNumber(total);
-    $('monthList').innerHTML = monthly.map((hours, index) => `
-      <div class="month-row">
+    $('yearCompare').textContent = previousTotal ? `Rok ${statisticsYear - 1}: ${formatNumber(previousTotal)} godz.` : '';
+    $('yearTiles').innerHTML = [
+      ['Nadgodziny', `${formatNumber(overtimeTotal)} h`],
+      ['Dni urlopu', vacationDays],
+      ['Dni chorobowego', sickDays],
+      ['Średnio na dzień pracy', workDays ? `${formatNumber(total / workDays)} h` : '–']
+    ].map(([label, value]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join('');
+    $('monthList').innerHTML = monthly.map((bucket, index) => {
+      const hours = bucket.regular + bucket.overtime;
+      const isFuture = statisticsYear > currentYear || (statisticsYear === currentYear && index > currentMonth);
+      const isCurrent = statisticsYear === currentYear && index === currentMonth;
+      const norm = monthNorm(statisticsYear, index);
+      const scale = Math.max(norm, hours, 1);
+      const width = (value) => (value ? Math.max(2, value / scale * 100) : 0);
+      const marker = hours > norm && norm > 0 ? `<span class="month-norm" style="left:${norm / scale * 100}%"></span>` : '';
+      let delta = '';
+      let deltaClass = '';
+      if (isCurrent) delta = `z ${formatNumber(norm)}`;
+      else if (!isFuture && bucket.entries) {
+        const difference = hours - norm;
+        delta = difference === 0 ? 'norma' : `${difference > 0 ? '+' : '−'}${formatNumber(Math.abs(difference))}`;
+        deltaClass = difference > 0 ? 'over' : difference < 0 ? 'under' : '';
+      }
+      const hoursText = isFuture && !hours ? '–' : `${formatNumber(hours)} h`;
+      const spoken = `${MONTHS[index]}: ${formatNumber(hours)} godzin, w tym ${formatNumber(bucket.overtime)} nadgodzin; norma ${formatNumber(norm)} godzin. Otwórz w kalendarzu`;
+      return `<button class="month-row${isFuture ? ' future' : ''}${isCurrent ? ' current' : ''}" type="button" data-stat-month="${index}" aria-label="${spoken}">
         <span class="month-name">${MONTHS[index]}</span>
-        <span class="month-track" aria-hidden="true"><span class="month-bar" style="width:${hours ? Math.max(3, hours / max * 100) : 0}%"></span></span>
-        <span class="month-hours">${formatNumber(hours)} h</span>
-      </div>`).join('');
+        <span class="month-track" aria-hidden="true"><span class="month-bar regular" style="width:${width(bucket.regular)}%"></span><span class="month-bar overtime" style="width:${width(bucket.overtime)}%"></span>${marker}</span>
+        <span class="month-hours">${hoursText}<small class="${deltaClass}">${delta}</small></span>
+      </button>`;
+    }).join('');
   }
 
   function renderVacations() {
@@ -795,24 +881,38 @@
     $('manualEntrySummary').textContent = `${startTime}–${endTimeLabel(regular, overtime, startTime)} • razem ${formatNumber(total)} godz.${overtime ? `, w tym ${formatNumber(overtime)} nadgodz.` : ''}`;
   }
 
-  function nextMissingDayInSelectedWeek() {
-    const weekStart = selectedWeekStart();
-    const weekEnd = addDays(weekStart, 6);
-
-    for (let cursor = weekStart; cursor <= weekEnd; cursor = addDays(cursor, 1)) {
-      const key = localDateKey(cursor);
-      if (!entries[key] || entries[key].deleted) return key;
-    }
-    return '';
-  }
-
   $('previousWeek').addEventListener('click', () => { weekOffset -= 1; render(); });
   $('nextWeek').addEventListener('click', () => { weekOffset += 1; render(); });
   $('currentWeekButton').addEventListener('click', () => { weekOffset = 0; render(); });
-  $('addManualEntry').addEventListener('click', () => {
-    const weekStart = selectedWeekStart();
+  let manualEntryWeekStart = null;
+
+  function weekOffsetFor(key) {
+    return Math.round((startOfWeek(dateFromKey(key)) - startOfWeek(new Date())) / (7 * 24 * 60 * 60 * 1000));
+  }
+
+  // Pytanie o rodzaj wpisu dla dat przyszłych, w pozostałych przypadkach wpis powstaje od razu.
+  function requestEntry(candidate) {
+    if (candidate.key > localDateKey(new Date())) {
+      pendingFutureEntry = candidate;
+      const formattedDate = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dateFromKey(candidate.key));
+      $('futureEntryConfirmText').textContent = `Wybrana data (${formattedDate}) jest w przyszłości. Wybierz rodzaj wpisu.`;
+      futureEntryConfirmDialog.showModal();
+      return;
+    }
+    commitManualEntry(candidate);
+  }
+
+  function openManualEntry(preferredKey = '') {
+    manualEntryWeekStart = preferredKey ? startOfWeek(dateFromKey(preferredKey)) : selectedWeekStart();
+    const weekStart = manualEntryWeekStart;
     const weekEnd = addDays(weekStart, 6);
-    const suggestedDate = nextMissingDayInSelectedWeek();
+    let suggestedDate = preferredKey;
+    if (!suggestedDate) {
+      for (let cursor = weekStart; cursor <= weekEnd; cursor = addDays(cursor, 1)) {
+        const key = localDateKey(cursor);
+        if (!entries[key] || entries[key].deleted) { suggestedDate = key; break; }
+      }
+    }
     $('manualEntryDate').min = localDateKey(weekStart);
     $('manualEntryDate').max = localDateKey(weekEnd);
     $('manualEntryDate').value = suggestedDate;
@@ -822,6 +922,11 @@
     updateManualEntrySummary();
     $('manualEntryError').textContent = suggestedDate ? '' : 'Brak wolnego dnia w wybranym tygodniu.';
     manualEntryDialog.showModal();
+  }
+  $('addManualEntry').addEventListener('click', () => openManualEntry());
+  $('missingDaysList').addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-add-day]');
+    if (chip) requestEntry({ key: chip.dataset.addDay, regular: settings.regularHours, overtime: 0, startTime: settings.startTime });
   });
   $('closeManualEntry').addEventListener('click', () => manualEntryDialog.close());
   function commitManualEntry(entry, kind = 'work') {
@@ -836,9 +941,7 @@
     };
     highlightedEntryKey = entry.key;
     saveEntries();
-    const chosenWeek = startOfWeek(dateFromKey(entry.key));
-    const currentWeek = startOfWeek(new Date());
-    weekOffset = Math.round((chosenWeek - currentWeek) / (7 * 24 * 60 * 60 * 1000));
+    weekOffset = weekOffsetFor(entry.key);
     pendingFutureEntry = null;
     if (futureEntryConfirmDialog.open) futureEntryConfirmDialog.close();
     manualEntryDialog.close();
@@ -848,9 +951,10 @@
   $('manualEntryForm').addEventListener('submit', (event) => {
     event.preventDefault();
     const key = $('manualEntryDate').value;
-    const firstDayKey = localDateKey(selectedWeekStart());
-    const lastDayKey = localDateKey(addDays(selectedWeekStart(), 6));
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || key < firstDayKey || key > lastDayKey) {
+    const weekStart = manualEntryWeekStart || selectedWeekStart();
+    const firstDayKey = localDateKey(weekStart);
+    const lastDayKey = localDateKey(addDays(weekStart, 6));
+    if (!isValidDateKey(key) || key < firstDayKey || key > lastDayKey) {
       $('manualEntryError').textContent = 'Wybierz poprawną datę z wybranego tygodnia.';
       return;
     }
@@ -859,15 +963,7 @@
       return;
     }
     const { regular, overtime, startTime } = manualEntryValues();
-    const candidate = { key, regular, overtime, startTime };
-    if (key > localDateKey(new Date())) {
-      pendingFutureEntry = candidate;
-      const formattedDate = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dateFromKey(key));
-      $('futureEntryConfirmText').textContent = `Wybrana data (${formattedDate}) jest w przyszłości. Wybierz rodzaj wpisu.`;
-      futureEntryConfirmDialog.showModal();
-      return;
-    }
-    commitManualEntry(candidate);
+    requestEntry({ key, regular, overtime, startTime });
   });
   $('cancelFutureEntry').addEventListener('click', () => {
     pendingFutureEntry = null;
@@ -898,7 +994,15 @@
   });
   $('calendarGrid').addEventListener('click', (event) => {
     const day = event.target.closest('[data-calendar-key]');
-    if (day) openEditor(day.dataset.calendarKey);
+    if (day) { openEditor(day.dataset.calendarKey); return; }
+    const empty = event.target.closest('[data-calendar-add]');
+    if (empty) openManualEntry(empty.dataset.calendarAdd);
+  });
+  $('monthList').addEventListener('click', (event) => {
+    const row = event.target.closest('[data-stat-month]');
+    if (!row) return;
+    calendarDate = new Date(statisticsYear, Number(row.dataset.statMonth), 1, 12);
+    switchView('calendar');
   });
   $('openLeaveRequestGenerator').addEventListener('click', openLeaveRequestGenerator);
   $('closeLeaveRequestDialog').addEventListener('click', () => leaveRequestDialog.close());

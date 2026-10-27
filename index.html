@@ -66,11 +66,15 @@
           <button class="add-entry-button" id="addManualEntry" type="button">+ Dodaj wpis</button>
         </div>
       </div>
+      <div class="missing-days" id="missingDays" hidden>
+        <span id="missingDaysLabel">Dodaj dzień:</span>
+        <div class="missing-days-list" id="missingDaysList" role="group" aria-labelledby="missingDaysLabel"></div>
+      </div>
       <div class="record-list" id="recordList"></div>
       <div class="empty-state" id="emptyState" hidden>
         <div aria-hidden="true">○</div>
         <strong>Brak wpisów</strong>
-        <p>W tym tygodniu nie ma jeszcze zapisanych dni.</p>
+        <p>W tym tygodniu nie ma jeszcze zapisanych dni. Dodaj dzień przyciskiem powyżej albo włącz automat w Ustawieniach.</p>
       </div>
     </section>
     </div>
@@ -94,11 +98,11 @@
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
         <div class="calendar-legend" aria-label="Oznaczenia kolorów">
-          <span><i class="work"></i>Praca</span>
-          <span><i class="vacation"></i>Urlop</span>
-          <span><i class="sick"></i>Chorobowe</span>
-          <span><i class="child_sick"></i>Chorobowe dziecka</span>
-          <span><i class="holiday"></i>Odbiór za święto</span>
+          <span><i class="work"></i>P · Praca</span>
+          <span><i class="vacation"></i>U · Urlop</span>
+          <span><i class="sick"></i>C · Chorobowe</span>
+          <span><i class="child_sick"></i>D · Chorobowe dziecka</span>
+          <span><i class="holiday"></i>Ś · Odbiór za święto</span>
         </div>
         <button class="pdf-export-button" id="openPdfGenerator" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6"></path></svg>
@@ -123,8 +127,16 @@
         <span>Łącznie w roku</span>
         <div><strong id="yearHours">0</strong><small>godz.</small></div>
       </section>
+      <p class="year-compare" id="yearCompare"></p>
+      <div class="year-tiles" id="yearTiles"></div>
       <div class="monthly-card">
-        <div class="monthly-heading"><strong>Godziny w miesiącach</strong><span>razem z nadgodzinami</span></div>
+        <div class="monthly-heading"><strong>Godziny w miesiącach</strong></div>
+        <div class="bar-legend" aria-hidden="true">
+          <span><i class="regular"></i>Podstawowe</span>
+          <span><i class="overtime"></i>Nadgodziny</span>
+          <span><i class="norm"></i>Norma</span>
+        </div>
+        <p class="monthly-note">Norma = dni robocze z Ustawień bez dni nieobecności × godziny dziennie. Święta państwowe nie są odliczane automatycznie. Dotknij miesiąca, aby otworzyć kalendarz.</p>
         <div class="month-list" id="monthList"></div>
       </div>
     </section>
