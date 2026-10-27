@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#f4f6f9">
+  <meta name="description" content="Ewidencja czasu pracy, nadgodzin, urlopów i dni chorobowych.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Dniówki">
+  <title>Dniówki</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./app-icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="app-logo" src="./app-icon-192.png" alt="" aria-hidden="true">
+        <div class="brand-copy">
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1>Dniówki</h1>
+        </div>
+      </div>
+      <button class="archive-button" id="openArchive" type="button" aria-label="Otwórz archiwum danych">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 14h8v7H8z"></path></svg>
+        <span id="archiveDot" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <div class="view week-view" id="weekView">
+    <section class="week-nav" aria-label="Wybór tygodnia">
+      <button class="icon-button" id="previousWeek" type="button" aria-label="Poprzedni tydzień">‹</button>
+      <button class="week-title" id="currentWeekButton" type="button" aria-label="Wróć do bieżącego tygodnia">
+        <strong id="weekName">Bieżący tydzień</strong>
+        <span id="weekRange"></span>
+      </button>
+      <button class="icon-button" id="nextWeek" type="button" aria-label="Następny tydzień">›</button>
+    </section>
+
+    <section class="summary-card" aria-labelledby="summaryHeading">
+      <div class="summary-primary">
+        <div>
+          <p id="summaryHeading">Przepracowane w tym tygodniu</p>
+          <div><strong id="totalHours">0</strong><span> godz.</span></div>
+        </div>
+        <div class="clock-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>
+        </div>
+      </div>
+      <div class="summary-grid">
+        <div><strong id="workDays">0</strong><span>Dniówki</span></div>
+        <div><strong id="overtimeHours">0 h</strong><span>Nadgodziny</span></div>
+        <div><strong id="absenceDays">0</strong><span>Nieobecności</span></div>
+      </div>
+    </section>
+
+    <section class="records" aria-labelledby="recordsHeading">
+      <div class="section-heading">
+        <h2 id="recordsHeading">Dni robocze</h2>
+        <div class="records-actions">
+          <span id="recordCount"></span>
+          <button class="add-entry-button" id="addManualEntry" type="button">+ Dodaj wpis</button>
+        </div>
+      </div>
+      <div class="record-list" id="recordList"></div>
+      <div class="empty-state" id="emptyState" hidden>
+        <div aria-hidden="true">○</div>
+        <strong>Brak wpisów</strong>
+        <p>W tym tygodniu nie ma jeszcze zapisanych dni.</p>
+      </div>
+    </section>
+    </div>
+
+    <section class="view calendar-view" id="calendarView" hidden aria-labelledby="calendarHeading">
+      <div class="calendar-header">
+        <p class="eyebrow">Miesięczny podgląd</p>
+        <h2 id="calendarHeading">Kalendarz</h2>
+      </div>
+      <section class="calendar-card" aria-label="Kalendarz wpisów">
+        <div class="calendar-toolbar">
+          <button type="button" id="previousMonth" aria-label="Poprzedni miesiąc">‹</button>
+          <button class="calendar-month-title" type="button" id="currentMonthButton" aria-label="Wróć do bieżącego miesiąca">
+            <strong id="calendarMonth"></strong>
+            <span id="calendarYear"></span>
+          </button>
+          <button type="button" id="nextMonth" aria-label="Następny miesiąc">›</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Nie</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-legend" aria-label="Oznaczenia kolorów">
+          <span><i class="work"></i>Praca</span>
+          <span><i class="vacation"></i>Urlop</span>
+          <span><i class="sick"></i>Chorobowe</span>
+          <span><i class="child_sick"></i>Chorobowe dziecka</span>
+          <span><i class="holiday"></i>Odbiór za święto</span>
+        </div>
+        <button class="pdf-export-button" id="openPdfGenerator" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6"></path></svg>
+          <span><strong>Lista obecności PDF</strong><small>Utwórz dokument dla tego miesiąca</small></span>
+        </button>
+      </section>
+    </section>
+
+    <section class="view statistics-view" id="statisticsView" hidden aria-labelledby="statisticsHeading">
+      <div class="stats-header">
+        <div>
+          <p class="eyebrow">Podsumowanie roczne</p>
+          <h2 id="statisticsHeading">Statystyki</h2>
+        </div>
+        <div class="year-picker" aria-label="Wybór roku">
+          <button type="button" id="previousYear" aria-label="Poprzedni rok">‹</button>
+          <strong id="statisticsYear"></strong>
+          <button type="button" id="nextYear" aria-label="Następny rok">›</button>
+        </div>
+      </div>
+      <section class="year-summary" aria-label="Suma godzin w roku">
+        <span>Łącznie w roku</span>
+        <div><strong id="yearHours">0</strong><small>godz.</small></div>
+      </section>
+      <div class="monthly-card">
+        <div class="monthly-heading"><strong>Godziny w miesiącach</strong><span>razem z nadgodzinami</span></div>
+        <div class="month-list" id="monthList"></div>
+      </div>
+    </section>
+
+    <section class="view vacation-view" id="vacationView" hidden aria-labelledby="vacationHeading">
+      <div class="stats-header">
+        <div>
+          <p class="eyebrow">Ewidencja nieobecności</p>
+          <h2 id="vacationHeading">Urlopy</h2>
+        </div>
+        <div class="year-picker" aria-label="Wybór roku urlopowego">
+          <button type="button" id="previousVacationYear" aria-label="Poprzedni rok">‹</button>
+          <strong id="vacationYear"></strong>
+          <button type="button" id="nextVacationYear" aria-label="Następny rok">›</button>
+        </div>
+      </div>
+      <section class="vacation-summary" aria-label="Liczba dni urlopowych w roku">
+        <div class="vacation-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        </div>
+        <div><span>Wykorzystane dni</span><strong id="vacationDaysTotal">0</strong></div>
+      </section>
+      <button class="pdf-export-button vacation-request-button" id="openLeaveRequestGenerator" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h4"></path></svg>
+        <span><strong>Wniosek urlopowy PDF</strong><small>Utwórz dokument do podpisu lub wysłania</small></span>
+      </button>
+      <section class="vacation-card" aria-labelledby="vacationListHeading">
+        <div class="section-heading">
+          <h3 id="vacationListHeading">Dni urlopowe</h3>
+          <span id="vacationListCount"></span>
+        </div>
+        <div class="vacation-list" id="vacationList"></div>
+        <div class="empty-state compact" id="vacationEmpty" hidden>
+          <div aria-hidden="true">○</div>
+          <strong>Brak dni urlopowych</strong>
+          <p>W wybranym roku nie zapisano jeszcze urlopu.</p>
+        </div>
+      </section>
+    </section>
+
+    <section class="view settings-view" id="settingsView" hidden aria-labelledby="settingsHeading">
+      <div class="settings-header">
+        <p class="eyebrow">Dostosuj aplikację</p>
+        <h2 id="settingsHeading">Ustawienia</h2>
+      </div>
+      <section class="settings-card appearance-card" aria-labelledby="appearanceHeading">
+        <div class="settings-card-heading compact">
+          <h3 id="appearanceHeading">Motyw aplikacji</h3>
+        </div>
+        <fieldset class="theme-picker" aria-label="Motyw aplikacji">
+          <div class="theme-options">
+            <label><input type="radio" name="theme" value="light"><span>Jasny</span></label>
+            <label><input type="radio" name="theme" value="dark"><span>Ciemny</span></label>
+            <label><input type="radio" name="theme" value="system"><span>Telefon</span></label>
+          </div>
+        </fieldset>
+      </section>
+      <section class="settings-card identity-card" aria-labelledby="identityHeading">
+        <div class="settings-card-heading compact">
+          <h3 id="identityHeading">Dane pracownika</h3>
+        </div>
+        <label class="identity-field" for="defaultEmployeeName">
+          <span>Imię i nazwisko</span>
+          <input id="defaultEmployeeName" type="text" maxlength="100" autocomplete="name" placeholder="Wpisz imię i nazwisko">
+        </label>
+      </section>
+      <section class="settings-card" aria-labelledby="automaticHeading">
+        <div class="settings-card-heading">
+          <div>
+            <h3 id="automaticHeading">Codzienny wpis</h3>
+            <p>Domyślne dane nowego dnia pracy.</p>
+          </div>
+          <label class="switch">
+            <input id="automaticEntries" type="checkbox">
+            <span aria-hidden="true"></span>
+            <span class="sr-only">Automatyczne wpisy</span>
+          </label>
+        </div>
+        <div class="settings-status" id="automaticStatus"></div>
+        <fieldset class="workday-settings">
+          <legend>Dni robocze</legend>
+          <div class="workday-grid">
+            <label><input type="checkbox" data-workday="1"><span>Pon</span></label>
+            <label><input type="checkbox" data-workday="2"><span>Wt</span></label>
+            <label><input type="checkbox" data-workday="3"><span>Śr</span></label>
+            <label><input type="checkbox" data-workday="4"><span>Czw</span></label>
+            <label><input type="checkbox" data-workday="5"><span>Pt</span></label>
+            <label><input type="checkbox" data-workday="6"><span>Sob</span></label>
+            <label><input type="checkbox" data-workday="0"><span>Nie</span></label>
+          </div>
+          <p>Zaznacz dni, w które automat ma tworzyć wpisy.</p>
+        </fieldset>
+        <label class="setting-row" for="defaultStartTime">
+          <span><strong>Godzina rozpoczęcia</strong><small>Początek dnia pracy</small></span>
+          <input id="defaultStartTime" type="time" step="900" value="06:00">
+        </label>
+        <label class="setting-row" for="defaultWorkHours">
+          <span><strong>Liczba godzin</strong><small>Bez nadgodzin</small></span>
+          <input id="defaultWorkHours" type="number" min="0.5" max="24" step="0.5" inputmode="decimal" value="8">
+        </label>
+        <p class="settings-note">Zmiany dotyczą tylko nowych wpisów. Dotychczasowe dni pozostaną bez zmian.</p>
+      </section>
+      <section class="settings-card" aria-labelledby="aboutHeading">
+        <div class="settings-card-heading compact">
+          <h3 id="aboutHeading">O aplikacji</h3>
+        </div>
+        <p class="settings-note" id="appVersion"></p>
+      </section>
+    </section>
+
+    <nav class="tab-bar" aria-label="Główna nawigacja">
+      <button class="active" type="button" data-view="week" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5zM8 3v4M16 3v4M5 9h14"></path></svg>
+        <span>Tydzień</span>
+      </button>
+      <button type="button" data-view="calendar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5zM8 3v4M16 3v4M5 9h14M8 12h2M12 12h2M16 12h1M8 16h2M12 16h2"></path></svg>
+        <span>Kalendarz</span>
+      </button>
+      <button type="button" data-view="statistics">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7"></path></svg>
+        <span>Statystyki</span>
+      </button>
+      <button type="button" data-view="vacation">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"></path></svg>
+        <span>Urlopy</span>
+      </button>
+      <button type="button" data-view="settings">
+        <svg viewBox="-1 -1 26 26" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7z"></path></svg>
+        <span>Ustawienia</span>
+      </button>
+    </nav>
+  </main>
+
+  <dialog class="editor" id="editorDialog" aria-labelledby="editorTitle">
+    <form method="dialog" id="editorForm">
+      <div class="dialog-handle" aria-hidden="true"></div>
+      <header class="dialog-header">
+        <button class="text-button" type="button" id="cancelEditor">Anuluj</button>
+        <h2 id="editorTitle">Edycja dnia</h2>
+        <button class="text-button strong" type="submit">Gotowe</button>
+      </header>
+
+      <fieldset class="kind-picker">
+        <legend>Rodzaj dnia</legend>
+        <div class="kind-options">
+          <label><input type="radio" name="kind" value="work"><span class="kind-icon blue">●</span><span>Praca</span></label>
+          <label><input type="radio" name="kind" value="vacation"><span class="kind-icon orange">●</span><span>Urlop</span></label>
+          <label><input type="radio" name="kind" value="sick"><span class="kind-icon red">●</span><span>Chorobowe</span></label>
+          <label><input type="radio" name="kind" value="holiday"><span class="kind-icon purple">●</span><span>Odbiór za święto</span></label>
+          <label><input type="radio" name="kind" value="child_sick"><span class="kind-icon teal">●</span><span>Chorobowe dziecka</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="time-fields" id="timeFields">
+        <legend>Czas pracy</legend>
+        <div class="time-options">
+          <label class="number-row">
+            <span>Godziny podstawowe</span>
+            <span class="stepper">
+              <button type="button" data-step="regular" data-direction="-1" aria-label="Odejmij pół godziny">−</button>
+              <output id="regularOutput">8 h</output>
+              <button type="button" data-step="regular" data-direction="1" aria-label="Dodaj pół godziny">+</button>
+            </span>
+          </label>
+          <label class="number-row">
+            <span>Nadgodziny</span>
+            <span class="stepper">
+              <button type="button" data-step="overtime" data-direction="-1" aria-label="Odejmij pół nadgodziny">−</button>
+              <output id="overtimeOutput">0 h</output>
+              <button type="button" data-step="overtime" data-direction="1" aria-label="Dodaj pół nadgodziny">+</button>
+            </span>
+          </label>
+          <div class="time-row"><span>Początek</span><strong id="startTime">06:00</strong></div>
+          <div class="time-row"><span>Koniec</span><strong id="endTime">14:00</strong></div>
+        </div>
+      </fieldset>
+
+      <button class="delete-button" type="button" id="deleteEntry">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"></path></svg>
+        Usuń wpis
+      </button>
+    </form>
+  </dialog>
+
+  <dialog class="manual-dialog" id="manualEntryDialog" aria-labelledby="manualEntryTitle">
+    <form id="manualEntryForm">
+      <header>
+        <div>
+          <p class="dialog-kicker">Wpis ręczny</p>
+          <h2 id="manualEntryTitle">Dodaj dzień pracy</h2>
+        </div>
+        <button class="close-button" id="closeManualEntry" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <div class="manual-fields">
+        <label for="manualEntryDate"><span>Data</span><input id="manualEntryDate" type="date" required></label>
+        <label for="manualStartTime"><span>Godzina rozpoczęcia</span><input id="manualStartTime" type="time" step="900" required></label>
+        <label for="manualRegularHours"><span>Godziny podstawowe</span><input id="manualRegularHours" type="number" min="0.5" max="24" step="0.5" inputmode="decimal" required></label>
+        <label for="manualOvertimeHours"><span>Nadgodziny</span><input id="manualOvertimeHours" type="number" min="0" max="12" step="0.5" inputmode="decimal" required></label>
+      </div>
+      <p class="manual-summary" id="manualEntrySummary"></p>
+      <p class="form-error" id="manualEntryError" role="alert"></p>
+      <button class="primary-form-button" type="submit">Dodaj wpis</button>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="futureEntryConfirmDialog" aria-labelledby="futureEntryConfirmTitle">
+    <div>
+      <p class="dialog-kicker">Data przyszła</p>
+      <h2 id="futureEntryConfirmTitle">Jak dodać ten wpis?</h2>
+      <p id="futureEntryConfirmText"></p>
+      <div class="confirm-actions future-entry-actions">
+        <button type="button" class="primary" id="confirmFutureWorkEntry">Dodaj jako dzień pracy</button>
+        <button type="button" class="vacation" id="confirmFutureVacationEntry">Dodaj jako urlop</button>
+        <button type="button" id="cancelFutureEntry">Wróć</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+    <div>
+      <h2 id="confirmTitle">Usunąć ten wpis?</h2>
+      <p>Dzień zniknie z zestawienia i nie zostanie ponownie utworzony automatycznie.</p>
+      <div class="confirm-actions">
+        <button type="button" id="keepEntry">Anuluj</button>
+        <button type="button" class="destructive" id="confirmDelete">Usuń wpis</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="importConfirmDialog" aria-labelledby="importConfirmTitle">
+    <div>
+      <p class="dialog-kicker">Wczytywanie archiwum</p>
+      <h2 id="importConfirmTitle">Zastąpić bieżące dane?</h2>
+      <p id="importConfirmText"></p>
+      <div class="confirm-actions">
+        <button type="button" id="cancelImport">Anuluj</button>
+        <button type="button" class="destructive" id="confirmImport">Zastąp dane</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="archive-dialog" id="archiveDialog" aria-labelledby="archiveTitle">
+    <div class="archive-panel">
+      <header>
+        <div>
+          <p class="dialog-kicker">Dane na urządzeniu</p>
+          <h2 id="archiveTitle">Archiwum danych</h2>
+        </div>
+        <button class="close-button" id="closeArchive" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <p class="archive-intro">Zapisz archiwum w aplikacji „Pliki”. Możesz je później wczytać na tym lub innym urządzeniu.</p>
+      <div class="archive-status" id="archiveStatus" role="status" aria-live="polite"></div>
+      <button class="archive-action primary" id="exportArchive" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 18v2h14v-2"></path></svg>
+        <span><strong>Zapisz lub zastąp archiwum</strong><small>Stała nazwa: dniowki-archiwum.json</small></span>
+      </button>
+      <label class="archive-action">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 18v2h14v-2"></path></svg>
+        <span><strong>Wczytaj archiwum</strong><small>Przywróć dane z pliku</small></span>
+        <input id="importArchive" type="file" accept="application/json,.json" hidden>
+      </label>
+      <button class="archive-action" id="undoImport" type="button" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-2"></path></svg>
+        <span><strong>Cofnij ostatni import</strong><small id="undoImportInfo">Przywróć dane sprzed wczytania archiwum</small></span>
+      </button>
+      <p class="archive-note">Kopia robocza pozostaje wyłącznie w tej przeglądarce. Przy ponownym zapisie do tego samego folderu wybierz zastąpienie wcześniejszego pliku.</p>
+    </div>
+  </dialog>
+
+  <dialog class="note-dialog" id="vacationNoteDialog" aria-labelledby="vacationNoteTitle">
+    <form id="vacationNoteForm">
+      <header>
+        <div>
+          <p class="dialog-kicker" id="vacationNoteDate"></p>
+          <h2 id="vacationNoteTitle">Opis urlopu</h2>
+        </div>
+        <button class="close-button" id="closeVacationNote" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <label for="vacationNote">Opis</label>
+      <textarea id="vacationNote" maxlength="300" rows="5" placeholder="Np. wyjazd rodzinny, wakacje…"></textarea>
+      <div class="note-meta"><span>Maksymalnie 300 znaków</span><span id="vacationNoteCounter">0/300</span></div>
+      <div class="note-actions">
+        <button class="remove-note" id="removeVacationNote" type="button">Usuń opis</button>
+        <button class="save-note" type="submit">Zapisz opis</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="pdf-dialog" id="pdfDialog" aria-labelledby="pdfDialogTitle">
+    <form id="pdfForm">
+      <header>
+        <div>
+          <p class="dialog-kicker" id="pdfMonthLabel">Eksport dokumentu</p>
+          <h2 id="pdfDialogTitle">Lista obecności PDF</h2>
+        </div>
+        <button class="close-button" id="closePdfDialog" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <div class="pdf-fields">
+        <label for="pdfMonthSelect"><span>Miesiąc</span><input id="pdfMonthSelect" type="month" required></label>
+      </div>
+      <p class="pdf-help">Zapisz go lub udostępnij.</p>
+      <button class="primary-form-button" type="submit">Utwórz listę obecności</button>
+    </form>
+  </dialog>
+
+  <dialog class="pdf-dialog leave-request-dialog" id="leaveRequestDialog" aria-labelledby="leaveRequestDialogTitle">
+    <form id="leaveRequestForm">
+      <header>
+        <div>
+          <p class="dialog-kicker">Generator dokumentu</p>
+          <h2 id="leaveRequestDialogTitle">Wniosek o urlop</h2>
+        </div>
+        <button class="close-button" id="closeLeaveRequestDialog" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <p class="employee-preview">Pracownik: <strong id="leaveRequestEmployee"></strong></p>
+      <div class="pdf-fields leave-request-fields">
+        <label for="leaveRequestPlace"><span>Miejscowość</span><input id="leaveRequestPlace" type="text" maxlength="80" autocomplete="address-level2" required></label>
+        <label for="leaveRequestDate"><span>Data wniosku</span><input id="leaveRequestDate" type="date" required></label>
+        <div class="date-pair">
+          <label for="leaveRequestFrom"><span>Urlop od</span><input id="leaveRequestFrom" type="date" required></label>
+          <label for="leaveRequestTo"><span>Urlop do</span><input id="leaveRequestTo" type="date" required></label>
+        </div>
+        <label for="leaveRequestYear"><span>Przysługujący za rok</span><input id="leaveRequestYear" type="number" min="2000" max="2100" inputmode="numeric" required></label>
+        <label for="leaveRequestType"><span>Rodzaj urlopu</span><select id="leaveRequestType" required>
+          <option value="wypoczynkowego">Wypoczynkowy</option>
+          <option value="okolicznościowego">Okolicznościowy</option>
+          <option value="opiekuńczego">Opiekuńczy</option>
+          <option value="szkoleniowego">Szkoleniowy</option>
+        </select></label>
+      </div>
+      <p class="form-error" id="leaveRequestError" role="alert"></p>
+      <p class="pdf-help">Dokument będzie gotowy do zapisania, udostępnienia lub druku.</p>
+      <button class="primary-form-button" type="submit">Utwórz wniosek urlopowy</button>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="leaveCalendarConfirmDialog" aria-labelledby="leaveCalendarConfirmTitle">
+    <div>
+      <p class="dialog-kicker">Wniosek utworzony</p>
+      <h2 id="leaveCalendarConfirmTitle">Dodać urlop do kalendarza?</h2>
+      <p id="leaveCalendarConfirmText"></p>
+      <div class="confirm-actions">
+        <button type="button" id="skipLeaveCalendar">Nie teraz</button>
+        <button type="button" class="vacation" id="confirmLeaveCalendar">Dodaj urlop</button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <aside class="update-prompt" id="updatePrompt" role="status" aria-live="polite" hidden>
+    <div class="update-prompt-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg>
+    </div>
+    <div class="update-prompt-copy">
+      <strong>Nowa wersja jest gotowa</strong>
+      <span>Zaktualizuj bez utraty zapisanych danych.</span>
+    </div>
+    <div class="update-prompt-actions">
+      <button type="button" id="dismissUpdate">Później</button>
+      <button class="primary" type="button" id="applyUpdate">Zaktualizuj</button>
+    </div>
+  </aside>
+
+  <script src="./app.js"></script>
+</body>
+</html>
