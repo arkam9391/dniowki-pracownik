@@ -97,12 +97,14 @@
           <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Nie</span>
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
+        <ul class="calendar-holidays" id="calendarHolidays" aria-label="Święta w tym miesiącu" hidden></ul>
         <div class="calendar-legend" aria-label="Oznaczenia kolorów">
           <span><i class="work"></i>P · Praca</span>
           <span><i class="vacation"></i>U · Urlop</span>
           <span><i class="sick"></i>C · Chorobowe</span>
           <span><i class="child_sick"></i>D · Chorobowe dziecka</span>
           <span><i class="holiday"></i>Ś · Odbiór za święto</span>
+          <span><i class="public"></i>Święto – dzień wolny</span>
         </div>
         <button class="pdf-export-button" id="openPdfGenerator" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6"></path></svg>
@@ -442,6 +444,7 @@
       <button class="primary-form-button" type="submit">Utwórz listę obecności</button>
     </form>
   </dialog>
+
 
   <dialog class="pdf-dialog leave-request-dialog" id="leaveRequestDialog" aria-labelledby="leaveRequestDialogTitle">
     <form id="leaveRequestForm">

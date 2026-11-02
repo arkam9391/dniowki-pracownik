@@ -1,4 +1,5 @@
 :root {
+  --top-shift: 16px;
   color-scheme: light;
   --bg: #f3f5f8;
   --surface: #ffffff;
@@ -118,7 +119,7 @@ button, input { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; clip-path: inset(50%); }
 
-.app-shell { width: min(100%, 680px); min-height: 100vh; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 18px max(104px, calc(env(safe-area-inset-bottom) + 86px)); }
+.app-shell { width: min(100%, 680px); min-height: 100vh; margin: 0 auto; padding: calc(max(22px, env(safe-area-inset-top)) + var(--top-shift)) 18px max(104px, calc(env(safe-area-inset-bottom) + 86px)); }
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .brand { min-width: 0; display: flex; align-items: center; gap: 12px; }
 .brand-copy { min-width: 0; }
@@ -450,7 +451,7 @@ button.calendar-day:active { transform: scale(.95); }
   .update-prompt-actions button { min-height: 34px; }
   .leave-request-fields .date-pair { grid-template-columns: minmax(0,1fr); }
   body.week-active { overflow: hidden; }
-  .app-shell { min-height: 100dvh; padding: max(9px, env(safe-area-inset-top)) 12px max(76px, calc(env(safe-area-inset-bottom) + 65px)); }
+  .app-shell { min-height: 100dvh; padding: calc(max(9px, env(safe-area-inset-top)) + var(--top-shift)) 12px max(76px, calc(env(safe-area-inset-bottom) + 65px)); }
   .topbar { min-height: 36px; margin-bottom: 5px; }
   .topbar .eyebrow { display: none; }
   .brand { gap: 8px; }
@@ -458,7 +459,7 @@ button.calendar-day:active { transform: scale(.95); }
   .topbar h1 { margin: 0; font-size: 1.65rem; }
   .archive-button { width: 36px; height: 36px; border-radius: 11px; }
   .archive-button svg { width: 18px; }
-  .week-view { height: calc(100dvh - max(9px, env(safe-area-inset-top)) - max(76px, calc(env(safe-area-inset-bottom) + 65px)) - 41px); display: flex; flex-direction: column; min-height: 0; }
+  .week-view { height: calc(100dvh - max(9px, env(safe-area-inset-top)) - var(--top-shift) - max(76px, calc(env(safe-area-inset-bottom) + 65px)) - 41px); display: flex; flex-direction: column; min-height: 0; }
   .week-nav { flex: 0 0 40px; grid-template-columns: 40px 1fr 40px; gap: 4px; margin-bottom: 6px; }
   .icon-button { width: 40px; height: 40px; font-size: 1.7rem; }
   .week-title { padding: 0; gap: 1px; }
@@ -580,3 +581,12 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-
   .stepper button { height: 40px; }
   .missing-days-list button { min-height: 30px; padding: 0 10px; }
 }
+
+/* --- 1.3.0: święta, narzędzie administratora --- */
+.calendar-day.public > span { position: relative; color: var(--red); }
+.calendar-day.public > span::after { content: ''; position: absolute; top: -4px; right: -8px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+.calendar-day.empty.public { border-color: var(--red); }
+.calendar-legend i.public { background: var(--red); width: 6px; height: 6px; margin: 2px; }
+.calendar-holidays { display: grid; gap: 4px; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); list-style: none; color: var(--muted); font-size: .78rem; }
+.calendar-holidays[hidden] { display: none; }
+.calendar-holidays strong { display: inline-block; min-width: 46px; color: var(--red); font-variant-numeric: tabular-nums; }
