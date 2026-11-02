@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.3.1';
+  const APP_VERSION = '1.4.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-02';
   const MAX_ENTRIES = 20000;
@@ -377,13 +377,10 @@
     const days = scheduledDays();
     const start = selectedWeekStart();
     const keys = [];
-    const todayKey = localDateKey(new Date());
     for (let index = 0; index < 7; index += 1) {
       const date = addDays(start, index);
       const key = localDateKey(date);
-      // Przy włączonym automacie przyszłe dni nie są jeszcze „brakujące”.
-      if (settings.automaticEntries && key > todayKey) continue;
-      if (days.includes(date.getDay()) && !holidayName(key) && (!entries[key] || entries[key].deleted)) keys.push(key);
+      if (days.includes(date.getDay()) && (!entries[key] || entries[key].deleted)) keys.push(key);
     }
     return keys;
   }
@@ -394,7 +391,9 @@
     $('missingDaysList').innerHTML = missing.map((key) => {
       const date = dateFromKey(key);
       const spoken = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
-      return `<button type="button" data-add-day="${key}" aria-label="Dodaj dzień pracy: ${spoken}">${WEEKDAYS[date.getDay()]} ${date.getDate()}</button>`;
+      const holiday = holidayName(key);
+      const holidayNote = holiday ? `, święto: ${holiday}` : '';
+      return `<button type="button" class="${holiday ? 'holiday' : ''}" data-add-day="${key}" aria-label="Dodaj dzień pracy: ${spoken}${holidayNote}">${WEEKDAYS[date.getDay()]} ${date.getDate()}</button>`;
     }).join('');
   }
 

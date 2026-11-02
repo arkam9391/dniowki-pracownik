@@ -590,3 +590,4 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-
 .calendar-holidays { display: grid; gap: 4px; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); list-style: none; color: var(--muted); font-size: .78rem; }
 .calendar-holidays[hidden] { display: none; }
 .calendar-holidays strong { display: inline-block; min-width: 46px; color: var(--red); font-variant-numeric: tabular-nums; }
+.missing-days-list button.holiday { border-color: var(--red); background: var(--red-soft); color: var(--red); }
