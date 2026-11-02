@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.3.0';
+  const APP_VERSION = '1.3.1';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-02';
   const MAX_ENTRIES = 20000;
