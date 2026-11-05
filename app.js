@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.6.0';
+  const APP_VERSION = '1.7.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-05';
   const MAX_ENTRIES = 20000;
@@ -953,23 +953,27 @@
   function renderVacations() {
     const todayKey = localDateKey(new Date());
     const vacations = Object.values(entries)
-      .filter((entry) => !entry.deleted && entry.kind === 'vacation' && entry.date <= todayKey && dateFromKey(entry.date).getFullYear() === vacationYear)
+      .filter((entry) => !entry.deleted && entry.kind === 'vacation' && dateFromKey(entry.date).getFullYear() === vacationYear)
       .sort((a, b) => b.date.localeCompare(a.date));
+    const plannedCount = vacations.filter((entry) => entry.date > todayKey).length;
     $('vacationYear').textContent = vacationYear;
     $('nextVacationYear').disabled = vacationYear >= new Date().getFullYear();
     renderLeaveBalance();
-    $('vacationListCount').textContent = vacations.length ? `${vacations.length} ${vacations.length === 1 ? 'dzień' : 'dni'}` : '';
+    $('vacationListCount').textContent = vacations.length
+      ? `${vacations.length} ${vacations.length === 1 ? 'dzień' : 'dni'}${plannedCount ? `, w tym zaplanowane: ${plannedCount}` : ''}`
+      : '';
     $('vacationEmpty').hidden = vacations.length > 0;
     $('vacationList').innerHTML = vacations.map((entry) => {
       const date = dateFromKey(entry.date);
+      const planned = entry.date > todayKey;
       const weekday = new Intl.DateTimeFormat('pl-PL', { weekday: 'long' }).format(date);
+      const dayMonth = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long' }).format(date);
       const fullDate = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
-      const month = new Intl.DateTimeFormat('pl-PL', { month: 'short' }).format(date);
       const note = typeof entry.note === 'string' ? entry.note.trim() : '';
-      return `<button class="vacation-day" type="button" data-vacation-key="${entry.date}" aria-label="${note ? 'Edytuj' : 'Dodaj'} opis urlopu: ${fullDate}">
+      return `<button class="vacation-day${planned ? ' planned' : ''}" type="button" data-vacation-key="${entry.date}" aria-label="${planned ? 'Zaplanowany urlop' : 'Urlop'}, ${fullDate}. ${note ? 'Edytuj' : 'Dodaj'} opis">
         <span class="vacation-date">${date.getDate()}</span>
-        <span class="vacation-copy"><strong>${weekday.charAt(0).toUpperCase() + weekday.slice(1)}</strong><span>${fullDate}</span><span class="vacation-description${note ? '' : ' empty'}">${note ? escapeHTML(note) : 'Dodaj opis'}</span></span>
-        <span class="vacation-month">${month}</span>
+        <span class="vacation-copy"><strong>${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${dayMonth}${planned ? '<em class="planned-badge">Zaplanowany</em>' : ''}</strong><span class="vacation-description${note ? '' : ' empty'}">${note ? escapeHTML(note) : 'Dodaj opis'}</span></span>
+        <span class="vacation-month" aria-hidden="true"></span>
       </button>`;
     }).join('');
   }
