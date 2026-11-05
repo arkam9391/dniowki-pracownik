@@ -655,3 +655,15 @@ button.leave-balance:active { transform: scale(.99); }
 .vacation-description { margin-top: 1px; font-size: .76rem !important; }
 .vacation-day.planned .vacation-date { border: 1.5px dashed var(--orange); background: transparent; }
 .planned-badge { display: inline-block; margin-left: 7px; padding: 1px 7px; border: 1px solid var(--orange); border-radius: 999px; color: var(--orange); font-size: .62rem; font-style: normal; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }
+
+/* --- 1.8.0: urlop w podsumowaniu tygodnia --- */
+.summary-primary .summary-side { display: grid; gap: 1px; margin-left: auto; padding: 8px 12px; border-radius: 14px; background: var(--orange-soft); text-align: right; line-height: 1.2; }
+.summary-primary .summary-side > span { color: var(--orange); font-size: .72rem; font-weight: 800; letter-spacing: .02em; }
+.summary-primary .summary-side .summary-side-value { color: var(--text); font-size: .8rem; font-weight: 700; }
+.summary-primary .summary-side .summary-side-value b { font-size: 1.45rem; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.summary-primary .summary-side .summary-side-days { color: var(--muted); font-weight: 700; }
+@media (max-width: 600px) {
+  .summary-primary .summary-side { padding: 5px 10px; border-radius: 12px; }
+  .summary-primary .summary-side .summary-side-value b { font-size: 1.2rem; }
+  .summary-primary .summary-side > span { font-size: .62rem; }
+}

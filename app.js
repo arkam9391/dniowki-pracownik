@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.7.0';
+  const APP_VERSION = '1.8.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-05';
   const MAX_ENTRIES = 20000;
@@ -361,6 +361,9 @@
     $('weekRange').textContent = formatRange(start);
     $('nextWeek').disabled = false;
     $('totalHours').textContent = formatNumber(total);
+    const vacationDays = list.filter((item) => item.kind === 'vacation').length;
+    $('weekVacationHours').textContent = formatNumber(vacationDays * settings.regularHours);
+    $('weekVacationDays').textContent = `${vacationDays} ${vacationDays === 1 ? 'dzień' : 'dni'}`;
     $('workDays').textContent = workDays;
     $('overtimeHours').textContent = `${formatNumber(overtime)} h`;
     $('absenceDays').textContent = list.filter((item) => item.kind !== 'work').length;
