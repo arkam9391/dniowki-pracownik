@@ -591,3 +591,19 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-
 .calendar-holidays[hidden] { display: none; }
 .calendar-holidays strong { display: inline-block; min-width: 46px; color: var(--red); font-variant-numeric: tabular-nums; }
 .missing-days-list button.holiday { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+/* --- 1.5.0: pula urlopu --- */
+.dialog-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 10px; margin-top: 4px; }
+.dialog-actions [hidden] { display: none; }
+.secondary-form-button { min-height: 48px; border: 1px solid var(--line); border-radius: 13px; background: var(--control); color: var(--text); cursor: pointer; font-weight: 700; }
+.pdf-fields[hidden] { display: none; }
+button.leave-balance { width: 100%; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+button.leave-balance:active { transform: scale(.99); }
+.vacation-summary > .leave-balance-copy { display: grid; flex: 1; min-width: 0; gap: 3px; justify-content: stretch; }
+.leave-balance-copy > span { color: var(--muted); font-size: .88rem; }
+.leave-balance-main { display: flex; align-items: baseline; gap: 7px; }
+.leave-balance-main strong { font-size: 2.5rem; letter-spacing: -.04em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.leave-balance-main strong.over { color: var(--red); }
+.leave-balance-main small { color: var(--muted); font-size: .95rem; font-weight: 700; }
+.leave-balance-copy > small { color: var(--muted); font-size: .78rem; line-height: 1.35; }
+.leave-balance-edit { width: 20px; flex: 0 0 auto; align-self: flex-start; fill: none; stroke: var(--muted); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.leave-pool-preview { margin-top: 0; color: var(--text); font-weight: 700; }

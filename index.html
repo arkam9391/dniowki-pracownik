@@ -155,12 +155,17 @@
           <button type="button" id="nextVacationYear" aria-label="Następny rok">›</button>
         </div>
       </div>
-      <section class="vacation-summary" aria-label="Liczba dni urlopowych w roku">
+      <button class="vacation-summary leave-balance" id="openLeaveBalance" type="button" aria-haspopup="dialog">
         <div class="vacation-symbol" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
         </div>
-        <div><span>Wykorzystane dni</span><strong id="vacationDaysTotal">0</strong></div>
-      </section>
+        <div class="leave-balance-copy">
+          <span id="leaveBalanceLabel">Pozostało do wykorzystania</span>
+          <div class="leave-balance-main"><strong id="leaveBalanceValue">—</strong><small id="leaveBalanceUnit"></small></div>
+          <small id="leaveBalanceDetail"></small>
+        </div>
+        <svg class="leave-balance-edit" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg>
+      </button>
       <button class="pdf-export-button vacation-request-button" id="openLeaveRequestGenerator" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h4"></path></svg>
         <span><strong>Wniosek urlopowy PDF</strong><small>Utwórz dokument do podpisu lub wysłania</small></span>
@@ -474,6 +479,29 @@
       <p class="form-error" id="leaveRequestError" role="alert"></p>
       <p class="pdf-help">Dokument będzie gotowy do zapisania, udostępnienia lub druku.</p>
       <button class="primary-form-button" type="submit">Utwórz wniosek urlopowy</button>
+    </form>
+  </dialog>
+
+  <dialog class="pdf-dialog" id="leaveBalanceDialog" aria-labelledby="leaveBalanceTitle">
+    <form id="leaveBalanceForm" novalidate>
+      <header>
+        <div>
+          <p class="dialog-kicker">Urlop wypoczynkowy</p>
+          <h2 id="leaveBalanceTitle">Pula urlopu</h2>
+        </div>
+        <button class="close-button" id="closeLeaveBalance" type="button" aria-label="Zamknij">×</button>
+      </header>
+      <div class="pdf-fields">
+        <label for="leavePoolTotal"><span>Dni urlopu na rok</span><input id="leavePoolTotal" type="number" min="0" max="366" step="0.5" inputmode="decimal"></label>
+        <label for="leavePoolAdjust"><span>Korekta (+/−)</span><input id="leavePoolAdjust" type="number" min="-366" max="366" step="0.5" inputmode="decimal" value="0"></label>
+      </div>
+      <p class="pdf-help">Pula to dni przysługujące w roku, razem z urlopem zaległym. Korekta zwiększa (+) lub zmniejsza (−) liczbę pozostałych dni, np. gdy część urlopu wykorzystano poza aplikacją. Dni z kalendarza (także zaplanowane) odejmują się automatycznie.</p>
+      <p class="pdf-help leave-pool-preview" id="leavePoolPreview" aria-live="polite"></p>
+      <p class="form-error" id="leavePoolError" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="secondary-form-button" type="button" id="clearLeavePool">Wyczyść pulę</button>
+        <button class="primary-form-button" type="submit">Zapisz</button>
+      </div>
     </form>
   </dialog>
 

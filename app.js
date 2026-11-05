@@ -6,9 +6,9 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.4.0';
+  const APP_VERSION = '1.5.0';
   const APP_EDITION = 'pracownik';
-  const APP_BUILD = '2026-11-02';
+  const APP_BUILD = '2026-11-05';
   const MAX_ENTRIES = 20000;
   const KINDS = ['work', 'vacation', 'sick', 'holiday', 'child_sick'];
   const WEEKDAYS = ['NIE', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SOB'];
@@ -182,6 +182,21 @@
     return Math.round(value * 2) / 2;
   }
 
+  // Pula urlopu na rok: { 'rrrr': { total: przysługujące dni, adjustment: korekta +/- } }.
+  function sanitizeVacationPools(source) {
+    const result = {};
+    if (!source || typeof source !== 'object') return result;
+    Object.keys(source).forEach((year) => {
+      const item = source[year];
+      if (!/^\d{4}$/.test(year) || !item || typeof item !== 'object' || !Number.isFinite(Number(item.total))) return;
+      result[year] = {
+        total: roundToHalf(Math.max(0, Math.min(366, Number(item.total)))),
+        adjustment: roundToHalf(Math.max(-366, Math.min(366, Number(item.adjustment) || 0)))
+      };
+    });
+    return result;
+  }
+
   function normalizeSettings(value) {
     const workdays = Array.isArray(value?.workdays)
       ? [...new Set(value.workdays.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))]
@@ -194,6 +209,7 @@
       employeeName: typeof value?.employeeName === 'string' ? value.employeeName.slice(0, 100) : '',
       leaveRequestPlace: typeof value?.leaveRequestPlace === 'string' ? value.leaveRequestPlace.slice(0, 80) : '',
       workerName: typeof value?.workerName === 'string' ? value.workerName.slice(0, 100) : '',
+      vacationPools: sanitizeVacationPools(value?.vacationPools),
       workdays
     };
   }
@@ -855,6 +871,34 @@
     }).join('');
   }
 
+  function daysWord(count) {
+    return Math.abs(count) === 1 ? 'dzień' : 'dni';
+  }
+
+  // Zaplanowane (przyszłe) dni urlopu też pomniejszają pulę, bo są już zarezerwowane.
+  function plannedVacationDays(year) {
+    const todayKey = localDateKey(new Date());
+    return Object.values(entries).filter((entry) => !entry.deleted && entry.kind === 'vacation'
+      && entry.date > todayKey && dateFromKey(entry.date).getFullYear() === year).length;
+  }
+
+  function renderLeaveBalance(used) {
+    const pool = settings.vacationPools[vacationYear];
+    const planned = plannedVacationDays(vacationYear);
+    const usage = `wykorzystane ${used}${planned ? `, zaplanowane ${planned}` : ''}`;
+    const remaining = pool ? pool.total + pool.adjustment - used - planned : null;
+    $('leaveBalanceValue').textContent = pool ? formatNumber(remaining) : '—';
+    $('leaveBalanceValue').classList.toggle('over', pool !== undefined && remaining < 0);
+    $('leaveBalanceUnit').textContent = pool ? daysWord(remaining) : '';
+    $('leaveBalanceLabel').textContent = pool && remaining < 0 ? 'Przekroczona pula urlopu' : 'Pozostało do wykorzystania';
+    $('leaveBalanceDetail').textContent = pool
+      ? `Pula ${formatNumber(pool.total)}${pool.adjustment ? ` ${pool.adjustment > 0 ? '+' : '−'} ${formatNumber(Math.abs(pool.adjustment))} korekty` : ''} · ${usage}`
+      : `Dotknij, aby ustawić pulę urlopu na ${vacationYear}. ${usage.charAt(0).toUpperCase()}${usage.slice(1)}.`;
+    $('openLeaveBalance').setAttribute('aria-label', pool
+      ? `Pozostało ${formatNumber(remaining)} ${daysWord(remaining)} urlopu w ${vacationYear}. Dotknij, aby zmienić pulę lub wprowadzić korektę`
+      : `Ustaw pulę urlopu na ${vacationYear}`);
+  }
+
   function renderVacations() {
     const todayKey = localDateKey(new Date());
     const vacations = Object.values(entries)
@@ -862,7 +906,7 @@
       .sort((a, b) => b.date.localeCompare(a.date));
     $('vacationYear').textContent = vacationYear;
     $('nextVacationYear').disabled = vacationYear >= new Date().getFullYear();
-    $('vacationDaysTotal').textContent = vacations.length;
+    renderLeaveBalance(vacations.length);
     $('vacationListCount').textContent = vacations.length ? `${vacations.length} ${vacations.length === 1 ? 'dzień' : 'dni'}` : '';
     $('vacationEmpty').hidden = vacations.length > 0;
     $('vacationList').innerHTML = vacations.map((entry) => {
@@ -1191,6 +1235,65 @@
   $('nextYear').addEventListener('click', () => {
     if (statisticsYear < new Date().getFullYear()) { statisticsYear += 1; renderStatistics(); }
   });
+  const leaveBalanceDialog = $('leaveBalanceDialog');
+
+  function leavePoolInputs() {
+    const rawTotal = $('leavePoolTotal').value.trim();
+    const total = rawTotal === '' ? null : Number(rawTotal);
+    const adjustment = Number($('leavePoolAdjust').value) || 0;
+    return { total, adjustment };
+  }
+
+  function updateLeavePoolPreview() {
+    const { total, adjustment } = leavePoolInputs();
+    const used = Object.values(entries).filter((entry) => !entry.deleted && entry.kind === 'vacation'
+      && dateFromKey(entry.date).getFullYear() === vacationYear).length;
+    $('leavePoolPreview').textContent = total === null || !Number.isFinite(total)
+      ? `W ${vacationYear} r. w kalendarzu jest ${used} ${daysWord(used)} urlopu (wykorzystane i zaplanowane).`
+      : `Po zapisie pozostanie: ${formatNumber(roundToHalf(total) + roundToHalf(adjustment) - used)} ${daysWord(roundToHalf(total) + roundToHalf(adjustment) - used)} (wpisanych w kalendarzu: ${used}).`;
+  }
+
+  $('openLeaveBalance').addEventListener('click', () => {
+    const pool = settings.vacationPools[vacationYear];
+    const previous = settings.vacationPools[vacationYear - 1];
+    $('leaveBalanceTitle').textContent = `Pula urlopu na rok ${vacationYear}`;
+    $('leavePoolTotal').value = pool ? pool.total : '';
+    $('leavePoolTotal').placeholder = `np. ${previous ? previous.total : 26}`;
+    $('leavePoolAdjust').value = pool ? pool.adjustment : 0;
+    $('clearLeavePool').hidden = !pool;
+    $('leavePoolError').textContent = '';
+    updateLeavePoolPreview();
+    leaveBalanceDialog.showModal();
+  });
+  $('closeLeaveBalance').addEventListener('click', () => leaveBalanceDialog.close());
+  ['leavePoolTotal', 'leavePoolAdjust'].forEach((id) => $(id).addEventListener('input', updateLeavePoolPreview));
+  $('leaveBalanceForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const { total, adjustment } = leavePoolInputs();
+    if (total === null || !Number.isFinite(total) || total < 0 || total > 366) {
+      $('leavePoolError').textContent = 'Podaj liczbę dni urlopu na rok (0–366).';
+      $('leavePoolTotal').focus();
+      return;
+    }
+    if (adjustment < -366 || adjustment > 366) {
+      $('leavePoolError').textContent = 'Korekta może mieścić się w zakresie od −366 do 366 dni.';
+      $('leavePoolAdjust').focus();
+      return;
+    }
+    settings.vacationPools = { ...settings.vacationPools, [vacationYear]: { total: roundToHalf(total), adjustment: roundToHalf(adjustment) } };
+    saveSettings();
+    leaveBalanceDialog.close();
+    renderVacations();
+  });
+  $('clearLeavePool').addEventListener('click', () => {
+    const pools = { ...settings.vacationPools };
+    delete pools[vacationYear];
+    settings.vacationPools = pools;
+    saveSettings();
+    leaveBalanceDialog.close();
+    renderVacations();
+  });
+
   $('previousVacationYear').addEventListener('click', () => { vacationYear -= 1; renderVacations(); });
   $('nextVacationYear').addEventListener('click', () => {
     if (vacationYear < new Date().getFullYear()) { vacationYear += 1; renderVacations(); }
