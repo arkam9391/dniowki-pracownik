@@ -607,3 +607,29 @@ button.leave-balance:active { transform: scale(.99); }
 .leave-balance-copy > small { color: var(--muted); font-size: .78rem; line-height: 1.35; }
 .leave-balance-edit { width: 20px; flex: 0 0 auto; align-self: flex-start; fill: none; stroke: var(--muted); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .leave-pool-preview { margin-top: 0; color: var(--text); font-weight: 700; }
+
+/* --- 1.6.0: stary urlop, podpowiedzi --- */
+.leave-balance-dialog { max-height: 94dvh; overflow-y: auto; }
+.leave-balance-dialog form { padding: 18px 16px 20px; }
+.leave-field { display: grid; gap: 6px; margin-bottom: 12px; }
+.leave-field-head { display: flex; align-items: center; gap: 8px; }
+.leave-field-head label { color: var(--muted); font-size: .76rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.leave-field input[type="number"] { width: 100%; min-width: 0; min-height: 44px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); color: var(--text); font-size: 1rem; font-weight: 600; }
+.leave-field input[type="number"]:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.leave-field-hint { color: var(--muted); font-size: .76rem; line-height: 1.35; }
+.leave-field-hint:empty { display: none; }
+.help-button { width: 26px; height: 26px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 1px solid var(--blue); border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: .8rem; font-weight: 800; line-height: 1; cursor: pointer; }
+.help-button[aria-expanded="true"] { background: var(--blue); color: #fff; }
+.help-popover { padding: 12px 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--control); color: var(--text); font-size: .8rem; line-height: 1.45; }
+.help-popover[hidden] { display: none; }
+.help-popover p { margin: 0 0 8px; }
+.help-popover p:last-child { margin-bottom: 0; }
+.help-popover .help-disclaimer { color: var(--muted); font-size: .74rem; }
+.leave-adjust-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; gap: 8px; }
+.step-button { min-height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--control); color: var(--blue); font-size: 1.4rem; font-weight: 700; line-height: 1; cursor: pointer; }
+.step-button:active { transform: scale(.96); }
+.leave-balance-copy > small[id="leaveBalanceDetail"] { white-space: pre-line; }
+.leave-balance-note { margin-top: 3px; color: var(--muted); font-size: .76rem; line-height: 1.35; }
+.leave-balance-note[hidden] { display: none; }
+.leave-balance-status[data-level="soon"] { color: var(--orange); font-weight: 700; }
+.leave-balance-status[data-level="late"] { color: var(--red); font-weight: 700; }

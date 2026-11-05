@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.5.0';
+  const APP_VERSION = '1.6.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-05';
   const MAX_ENTRIES = 20000;
@@ -182,7 +182,7 @@
     return Math.round(value * 2) / 2;
   }
 
-  // Pula urlopu na rok: { 'rrrr': { total: przysługujące dni, adjustment: korekta +/- } }.
+  // Pula urlopu na rok: { 'rrrr': { total: limit roku, adjustment: korekta +/-, carry?: stary urlop (brak = automatycznie z poprzedniego roku) } }.
   function sanitizeVacationPools(source) {
     const result = {};
     if (!source || typeof source !== 'object') return result;
@@ -193,6 +193,9 @@
         total: roundToHalf(Math.max(0, Math.min(366, Number(item.total)))),
         adjustment: roundToHalf(Math.max(-366, Math.min(366, Number(item.adjustment) || 0)))
       };
+      if (item.carry !== undefined && item.carry !== null && Number.isFinite(Number(item.carry))) {
+        result[year].carry = roundToHalf(Math.max(0, Math.min(366, Number(item.carry))));
+      }
     });
     return result;
   }
@@ -871,31 +874,79 @@
     }).join('');
   }
 
+  const OLD_LEAVE_DEADLINE = { month: 8, day: 30, label: '30 września' };
+
   function daysWord(count) {
     return Math.abs(count) === 1 ? 'dzień' : 'dni';
   }
 
-  // Zaplanowane (przyszłe) dni urlopu też pomniejszają pulę, bo są już zarezerwowane.
-  function plannedVacationDays(year) {
+  function vacationCounts(year) {
     const todayKey = localDateKey(new Date());
-    return Object.values(entries).filter((entry) => !entry.deleted && entry.kind === 'vacation'
-      && entry.date > todayKey && dateFromKey(entry.date).getFullYear() === year).length;
+    let used = 0;
+    let planned = 0;
+    Object.values(entries).forEach((entry) => {
+      if (entry.deleted || entry.kind !== 'vacation' || dateFromKey(entry.date).getFullYear() !== year) return;
+      if (entry.date <= todayKey) used += 1;
+      else planned += 1;
+    });
+    return { used, planned };
   }
 
-  function renderLeaveBalance(used) {
-    const pool = settings.vacationPools[vacationYear];
-    const planned = plannedVacationDays(vacationYear);
+  // Stan urlopu w roku. Niewykorzystane dni z poprzedniego roku przechodzą jako „stary urlop”,
+  // a limit roku jest dziedziczony, dopóki użytkownik go nie zmieni. Dni urlopu schodzą najpierw ze starego urlopu.
+  function leaveSummary(year, depth = 0) {
+    const stored = settings.vacationPools[year];
+    const explicitCarry = Boolean(stored) && stored.carry !== undefined;
+    const previous = !explicitCarry && depth < 8 ? leaveSummary(year - 1, depth + 1) : null;
+    if (!stored && !previous) return null;
+    const autoCarry = previous ? Math.max(0, previous.remaining) : 0;
+    const total = stored ? stored.total : previous.total;
+    const adjustment = stored ? stored.adjustment : 0;
+    const carry = explicitCarry ? stored.carry : autoCarry;
+    const { used, planned } = vacationCounts(year);
+    const usedAll = used + planned;
+    const oldUsed = Math.min(carry, usedAll);
+    const remainingOld = carry - oldUsed;
+    const remainingCurrent = total + adjustment - (usedAll - oldUsed);
+    return {
+      year, total, adjustment, carry, autoCarry, used, planned, remainingOld, remainingCurrent,
+      carryAuto: Boolean(previous) && !explicitCarry,
+      rolled: !stored,
+      remaining: remainingOld + remainingCurrent
+    };
+  }
+
+  function oldLeaveStatus(summary) {
+    if (!summary || summary.remainingOld <= 0 || summary.year !== new Date().getFullYear()) return null;
+    const deadline = new Date(summary.year, OLD_LEAVE_DEADLINE.month, OLD_LEAVE_DEADLINE.day, 12);
+    const daysLeft = Math.ceil((deadline - new Date()) / 86400000);
+    if (daysLeft < 0) return { level: 'late', text: `Termin wykorzystania starego urlopu (${OLD_LEAVE_DEADLINE.label}) minął.` };
+    if (daysLeft <= 60) return { level: 'soon', text: `Stary urlop: do ${OLD_LEAVE_DEADLINE.label} zostało ${daysLeft} ${daysWord(daysLeft)}.` };
+    return { level: 'info', text: `Stary urlop należy wykorzystać do ${OLD_LEAVE_DEADLINE.label}.` };
+  }
+
+  function renderLeaveBalance() {
+    const summary = leaveSummary(vacationYear);
+    const { used, planned } = vacationCounts(vacationYear);
     const usage = `wykorzystane ${used}${planned ? `, zaplanowane ${planned}` : ''}`;
-    const remaining = pool ? pool.total + pool.adjustment - used - planned : null;
-    $('leaveBalanceValue').textContent = pool ? formatNumber(remaining) : '—';
-    $('leaveBalanceValue').classList.toggle('over', pool !== undefined && remaining < 0);
-    $('leaveBalanceUnit').textContent = pool ? daysWord(remaining) : '';
-    $('leaveBalanceLabel').textContent = pool && remaining < 0 ? 'Przekroczona pula urlopu' : 'Pozostało do wykorzystania';
-    $('leaveBalanceDetail').textContent = pool
-      ? `Pula ${formatNumber(pool.total)}${pool.adjustment ? ` ${pool.adjustment > 0 ? '+' : '−'} ${formatNumber(Math.abs(pool.adjustment))} korekty` : ''} · ${usage}`
+    const status = oldLeaveStatus(summary);
+    let note = '';
+    if (summary && summary.rolled) note = `Limit i stary urlop odświeżone automatycznie z roku ${vacationYear - 1}.`;
+    else if (summary && summary.carryAuto) note = `Stary urlop przeniesiony automatycznie z roku ${vacationYear - 1}.`;
+    $('leaveBalanceValue').textContent = summary ? formatNumber(summary.remaining) : '—';
+    $('leaveBalanceValue').classList.toggle('over', Boolean(summary) && summary.remaining < 0);
+    $('leaveBalanceUnit').textContent = summary ? daysWord(summary.remaining) : '';
+    $('leaveBalanceLabel').textContent = summary && summary.remaining < 0 ? 'Przekroczona pula urlopu' : 'Pozostało do wykorzystania';
+    $('leaveBalanceDetail').textContent = summary
+      ? `Stary urlop: ${formatNumber(summary.remainingOld)} · bieżący: ${formatNumber(summary.remainingCurrent)}\nPula ${formatNumber(summary.total)}${summary.adjustment ? ` ${summary.adjustment > 0 ? '+' : '−'} ${formatNumber(Math.abs(summary.adjustment))} korekty` : ''} · ${usage}`
       : `Dotknij, aby ustawić pulę urlopu na ${vacationYear}. ${usage.charAt(0).toUpperCase()}${usage.slice(1)}.`;
-    $('openLeaveBalance').setAttribute('aria-label', pool
-      ? `Pozostało ${formatNumber(remaining)} ${daysWord(remaining)} urlopu w ${vacationYear}. Dotknij, aby zmienić pulę lub wprowadzić korektę`
+    $('leaveBalanceNote').textContent = note;
+    $('leaveBalanceNote').hidden = note === '';
+    $('leaveBalanceStatus').textContent = status ? status.text : '';
+    $('leaveBalanceStatus').hidden = !status;
+    $('leaveBalanceStatus').dataset.level = status ? status.level : 'info';
+    $('openLeaveBalance').setAttribute('aria-label', summary
+      ? `Pozostało ${formatNumber(summary.remaining)} ${daysWord(summary.remaining)} urlopu w ${vacationYear}, w tym stary urlop ${formatNumber(summary.remainingOld)}. Dotknij, aby zmienić pulę, stary urlop lub wprowadzić korektę`
       : `Ustaw pulę urlopu na ${vacationYear}`);
   }
 
@@ -906,7 +957,7 @@
       .sort((a, b) => b.date.localeCompare(a.date));
     $('vacationYear').textContent = vacationYear;
     $('nextVacationYear').disabled = vacationYear >= new Date().getFullYear();
-    renderLeaveBalance(vacations.length);
+    renderLeaveBalance();
     $('vacationListCount').textContent = vacations.length ? `${vacations.length} ${vacations.length === 1 ? 'dzień' : 'dni'}` : '';
     $('vacationEmpty').hidden = vacations.length > 0;
     $('vacationList').innerHTML = vacations.map((entry) => {
@@ -1236,43 +1287,83 @@
     if (statisticsYear < new Date().getFullYear()) { statisticsYear += 1; renderStatistics(); }
   });
   const leaveBalanceDialog = $('leaveBalanceDialog');
+  let leaveDialogSummary = null;
+
+  function closeLeaveHelp() {
+    leaveBalanceDialog.querySelectorAll('.help-popover').forEach((popover) => { popover.hidden = true; });
+    leaveBalanceDialog.querySelectorAll('.help-button').forEach((button) => button.setAttribute('aria-expanded', 'false'));
+  }
 
   function leavePoolInputs() {
     const rawTotal = $('leavePoolTotal').value.trim();
-    const total = rawTotal === '' ? null : Number(rawTotal);
-    const adjustment = Number($('leavePoolAdjust').value) || 0;
-    return { total, adjustment };
+    return {
+      total: rawTotal === '' ? null : Number(rawTotal),
+      carry: Number($('leavePoolCarry').value) || 0,
+      adjustment: Number($('leavePoolAdjust').value) || 0
+    };
   }
 
   function updateLeavePoolPreview() {
-    const { total, adjustment } = leavePoolInputs();
-    const used = Object.values(entries).filter((entry) => !entry.deleted && entry.kind === 'vacation'
-      && dateFromKey(entry.date).getFullYear() === vacationYear).length;
-    $('leavePoolPreview').textContent = total === null || !Number.isFinite(total)
-      ? `W ${vacationYear} r. w kalendarzu jest ${used} ${daysWord(used)} urlopu (wykorzystane i zaplanowane).`
-      : `Po zapisie pozostanie: ${formatNumber(roundToHalf(total) + roundToHalf(adjustment) - used)} ${daysWord(roundToHalf(total) + roundToHalf(adjustment) - used)} (wpisanych w kalendarzu: ${used}).`;
+    const { total, carry, adjustment } = leavePoolInputs();
+    const { used, planned } = vacationCounts(vacationYear);
+    const usedAll = used + planned;
+    if (total === null || !Number.isFinite(total)) {
+      $('leavePoolPreview').textContent = `W ${vacationYear} r. w kalendarzu jest ${usedAll} ${daysWord(usedAll)} urlopu (wykorzystane i zaplanowane).`;
+      return;
+    }
+    const oldPool = roundToHalf(carry);
+    const oldUsed = Math.min(oldPool, usedAll);
+    const remainingOld = oldPool - oldUsed;
+    const remainingCurrent = roundToHalf(total) + roundToHalf(adjustment) - (usedAll - oldUsed);
+    const remaining = remainingOld + remainingCurrent;
+    $('leavePoolPreview').textContent = `Po zapisie pozostanie: ${formatNumber(remaining)} ${daysWord(remaining)} (stary urlop: ${formatNumber(remainingOld)}, bieżący: ${formatNumber(remainingCurrent)}). W kalendarzu: ${usedAll}.`;
   }
 
   $('openLeaveBalance').addEventListener('click', () => {
-    const pool = settings.vacationPools[vacationYear];
-    const previous = settings.vacationPools[vacationYear - 1];
+    const summary = leaveSummary(vacationYear);
+    leaveDialogSummary = summary;
     $('leaveBalanceTitle').textContent = `Pula urlopu na rok ${vacationYear}`;
-    $('leavePoolTotal').value = pool ? pool.total : '';
-    $('leavePoolTotal').placeholder = `np. ${previous ? previous.total : 26}`;
-    $('leavePoolAdjust').value = pool ? pool.adjustment : 0;
-    $('clearLeavePool').hidden = !pool;
+    $('leavePoolTotal').value = summary ? summary.total : '';
+    $('leavePoolTotal').placeholder = 'np. 20 lub 26';
+    $('leavePoolCarry').value = summary ? summary.carry : 0;
+    $('leavePoolAdjust').value = summary ? summary.adjustment : 0;
+    $('leaveCarryHint').textContent = summary && summary.carryAuto
+      ? `Przeniesiono automatycznie z roku ${vacationYear - 1}: ${formatNumber(summary.autoCarry)} ${daysWord(summary.autoCarry)}. Możesz zmienić.`
+      : '';
+    const stored = Boolean(settings.vacationPools[vacationYear]);
+    $('clearLeavePool').hidden = !stored;
+    $('clearLeavePool').textContent = leaveSummary(vacationYear - 1) ? 'Ustaw automatycznie' : 'Wyczyść pulę';
     $('leavePoolError').textContent = '';
+    closeLeaveHelp();
     updateLeavePoolPreview();
     leaveBalanceDialog.showModal();
   });
   $('closeLeaveBalance').addEventListener('click', () => leaveBalanceDialog.close());
-  ['leavePoolTotal', 'leavePoolAdjust'].forEach((id) => $(id).addEventListener('input', updateLeavePoolPreview));
+  leaveBalanceDialog.addEventListener('close', closeLeaveHelp);
+  ['leavePoolTotal', 'leavePoolCarry', 'leavePoolAdjust'].forEach((id) => $(id).addEventListener('input', updateLeavePoolPreview));
+  [['leaveAdjustMinus', -1], ['leaveAdjustPlus', 1]].forEach(([id, step]) => $(id).addEventListener('click', () => {
+    const next = roundToHalf(Math.max(-366, Math.min(366, (Number($('leavePoolAdjust').value) || 0) + step)));
+    $('leavePoolAdjust').value = next;
+    updateLeavePoolPreview();
+  }));
+  leaveBalanceDialog.querySelectorAll('.help-button').forEach((button) => button.addEventListener('click', () => {
+    const popover = $(button.getAttribute('aria-controls'));
+    const open = popover.hidden;
+    closeLeaveHelp();
+    popover.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+  }));
   $('leaveBalanceForm').addEventListener('submit', (event) => {
     event.preventDefault();
-    const { total, adjustment } = leavePoolInputs();
+    const { total, carry, adjustment } = leavePoolInputs();
     if (total === null || !Number.isFinite(total) || total < 0 || total > 366) {
       $('leavePoolError').textContent = 'Podaj liczbę dni urlopu na rok (0–366).';
       $('leavePoolTotal').focus();
+      return;
+    }
+    if (carry < 0 || carry > 366) {
+      $('leavePoolError').textContent = 'Stary urlop może mieć od 0 do 366 dni.';
+      $('leavePoolCarry').focus();
       return;
     }
     if (adjustment < -366 || adjustment > 366) {
@@ -1280,7 +1371,11 @@
       $('leavePoolAdjust').focus();
       return;
     }
-    settings.vacationPools = { ...settings.vacationPools, [vacationYear]: { total: roundToHalf(total), adjustment: roundToHalf(adjustment) } };
+    const pool = { total: roundToHalf(total), adjustment: roundToHalf(adjustment) };
+    // Wartość zgodna z automatycznym przeniesieniem nie jest zapisywana, żeby zmiany w poprzednim roku nadal się przenosiły.
+    const keepsAutoCarry = leaveDialogSummary && leaveDialogSummary.carryAuto && roundToHalf(carry) === leaveDialogSummary.autoCarry;
+    if (!keepsAutoCarry) pool.carry = roundToHalf(carry);
+    settings.vacationPools = { ...settings.vacationPools, [vacationYear]: pool };
     saveSettings();
     leaveBalanceDialog.close();
     renderVacations();
@@ -1293,7 +1388,6 @@
     leaveBalanceDialog.close();
     renderVacations();
   });
-
   $('previousVacationYear').addEventListener('click', () => { vacationYear -= 1; renderVacations(); });
   $('nextVacationYear').addEventListener('click', () => {
     if (vacationYear < new Date().getFullYear()) { vacationYear += 1; renderVacations(); }

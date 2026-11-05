@@ -163,6 +163,8 @@
           <span id="leaveBalanceLabel">Pozostało do wykorzystania</span>
           <div class="leave-balance-main"><strong id="leaveBalanceValue">—</strong><small id="leaveBalanceUnit"></small></div>
           <small id="leaveBalanceDetail"></small>
+          <small id="leaveBalanceNote" class="leave-balance-note" hidden></small>
+          <small id="leaveBalanceStatus" class="leave-balance-note leave-balance-status" hidden></small>
         </div>
         <svg class="leave-balance-edit" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"></path></svg>
       </button>
@@ -482,7 +484,7 @@
     </form>
   </dialog>
 
-  <dialog class="pdf-dialog" id="leaveBalanceDialog" aria-labelledby="leaveBalanceTitle">
+  <dialog class="pdf-dialog leave-balance-dialog" id="leaveBalanceDialog" aria-labelledby="leaveBalanceTitle">
     <form id="leaveBalanceForm" novalidate>
       <header>
         <div>
@@ -491,11 +493,52 @@
         </div>
         <button class="close-button" id="closeLeaveBalance" type="button" aria-label="Zamknij">×</button>
       </header>
-      <div class="pdf-fields">
-        <label for="leavePoolTotal"><span>Dni urlopu na rok</span><input id="leavePoolTotal" type="number" min="0" max="366" step="0.5" inputmode="decimal"></label>
-        <label for="leavePoolAdjust"><span>Korekta (+/−)</span><input id="leavePoolAdjust" type="number" min="-366" max="366" step="0.5" inputmode="decimal" value="0"></label>
+
+      <div class="leave-field">
+        <div class="leave-field-head">
+          <label for="leavePoolTotal">Dni urlopu na rok</label>
+          <button class="help-button" type="button" aria-expanded="false" aria-controls="helpLeaveTotal" aria-label="Wyjaśnienie: dni urlopu na rok">?</button>
+        </div>
+        <div class="help-popover" id="helpLeaveTotal" role="note" hidden>
+          <p><strong>Wymiar urlopu przy umowie o pracę (pełny etat):</strong> 20 dni, gdy staż pracy jest krótszy niż 10 lat, albo 26 dni, gdy wynosi co najmniej 10 lat (art. 154 Kodeksu pracy).</p>
+          <p><strong>Do stażu wlicza się:</strong> okresy zatrudnienia (także u poprzednich pracodawców) oraz okres nauki. Nauki nie sumuje się, liczy się jeden, najkorzystniejszy okres: zasadnicza szkoła zawodowa 3 lata, liceum 4 lata, technikum 5 lat, szkoła policealna 6 lat, studia wyższe 8 lat (art. 155 KP).</p>
+          <p><strong>Zlecenie i działalność gospodarcza:</strong> po nowelizacji z 2026 r. można je zaliczyć do stażu, jeśli są udokumentowane (zaświadczenie z ZUS). W firmach prywatnych dotyczy to okresów od 1 maja 2026 r. na wniosek pracownika. Umowa o dzieło nie wlicza się.</p>
+          <p><strong>Niepełny etat:</strong> wymiar jest proporcjonalny do etatu, a wynik zaokrągla się w górę do pełnego dnia (art. 154 § 2). <strong>Pierwszy rok pracy:</strong> 1/12 wymiaru za każdy przepracowany miesiąc (art. 155¹).</p>
+          <p class="help-disclaimer">Informacja pomocnicza, nie porada prawna. Wpisz liczbę dni, którą potwierdził dział kadr lub pracodawca.</p>
+        </div>
+        <input id="leavePoolTotal" type="number" min="0" max="366" step="0.5" inputmode="decimal">
       </div>
-      <p class="pdf-help">Pula to dni przysługujące w roku, razem z urlopem zaległym. Korekta zwiększa (+) lub zmniejsza (−) liczbę pozostałych dni, np. gdy część urlopu wykorzystano poza aplikacją. Dni z kalendarza (także zaplanowane) odejmują się automatycznie.</p>
+
+      <div class="leave-field">
+        <div class="leave-field-head">
+          <label for="leavePoolCarry">Stary urlop</label>
+          <button class="help-button" type="button" aria-expanded="false" aria-controls="helpLeaveCarry" aria-label="Wyjaśnienie: stary urlop">?</button>
+        </div>
+        <div class="help-popover" id="helpLeaveCarry" role="note" hidden>
+          <p><strong>Stary urlop (zaległy)</strong> to niewykorzystany urlop z poprzedniego roku. Po zmianie roku aplikacja przenosi tu nieodebrane dni automatycznie, a limit na nowy rok jest odświeżany.</p>
+          <p><strong>Kolejność:</strong> dni urlopu schodzą najpierw ze starego urlopu, potem z limitu bieżącego.</p>
+          <p><strong>Termin:</strong> pracodawca powinien udzielić urlopu zaległego najpóźniej do 30 września następnego roku kalendarzowego (art. 168 KP). Wystarczy, że urlop rozpocznie się 30 września. Regulamin zakładowy nie może tego terminu skrócić, a niewykorzystane dni nie przepadają. Aplikacja przypomina o terminie 30 września.</p>
+          <p class="help-disclaimer">Informacja pomocnicza, nie porada prawna.</p>
+        </div>
+        <input id="leavePoolCarry" type="number" min="0" max="366" step="0.5" inputmode="decimal" value="0">
+        <small class="leave-field-hint" id="leaveCarryHint"></small>
+      </div>
+
+      <div class="leave-field">
+        <div class="leave-field-head">
+          <label for="leavePoolAdjust">Korekta (+/−)</label>
+          <button class="help-button" type="button" aria-expanded="false" aria-controls="helpLeaveAdjust" aria-label="Wyjaśnienie: korekta">?</button>
+        </div>
+        <div class="help-popover" id="helpLeaveAdjust" role="note" hidden>
+          <p>Korekta zwiększa (+) lub zmniejsza (−) liczbę pozostałych dni, np. gdy część urlopu wykorzystano poza aplikacją albo trzeba wyrównać stan z danymi z działu kadr. Przyciski zmieniają wartość o 1 dzień, w polu można wpisać też pół dnia.</p>
+        </div>
+        <div class="leave-adjust-row">
+          <input id="leavePoolAdjust" type="number" min="-366" max="366" step="0.5" inputmode="decimal" value="0">
+          <button class="step-button" type="button" id="leaveAdjustMinus" aria-label="Zmniejsz korektę o 1 dzień">−</button>
+          <button class="step-button" type="button" id="leaveAdjustPlus" aria-label="Zwiększ korektę o 1 dzień">+</button>
+        </div>
+      </div>
+
       <p class="pdf-help leave-pool-preview" id="leavePoolPreview" aria-live="polite"></p>
       <p class="form-error" id="leavePoolError" role="alert"></p>
       <div class="dialog-actions">
@@ -504,7 +547,6 @@
       </div>
     </form>
   </dialog>
-
   <dialog class="confirm-dialog" id="leaveCalendarConfirmDialog" aria-labelledby="leaveCalendarConfirmTitle">
     <div>
       <p class="dialog-kicker">Wniosek utworzony</p>
