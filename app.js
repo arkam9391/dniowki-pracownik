@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.8.0';
+  const APP_VERSION = '1.9.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-05';
   const MAX_ENTRIES = 20000;
@@ -361,10 +361,16 @@
     $('weekRange').textContent = formatRange(start);
     $('nextWeek').disabled = false;
     $('totalHours').textContent = formatNumber(total);
-    const vacationDays = list.filter((item) => item.kind === 'vacation').length;
-    $('weekVacationHours').textContent = formatNumber(vacationDays * settings.regularHours);
-    $('weekVacationDays').textContent = `${vacationDays} ${vacationDays === 1 ? 'dzień' : 'dni'}`;
-    $('workDays').textContent = workDays;
+    const absenceTiles = [
+      ['vacation', 'Urlop', 'urlop', list.filter((item) => item.kind === 'vacation').length],
+      ['sick', 'Chorobowe', 'chorobowe', list.filter((item) => item.kind === 'sick').length],
+      ['child_sick', 'Chorobowe dziecka', 'chorobowe dziecka', list.filter((item) => item.kind === 'child_sick').length]
+    ].filter((tile) => tile[3] > 0);
+    $('summarySides').innerHTML = absenceTiles.map(([kind, label, spokenLabel, days]) => {
+      const hours = formatNumber(days * settings.regularHours);
+      const daysText = `${days} ${days === 1 ? 'dzień' : 'dni'}`;
+      return `<div class="summary-side ${kind}" role="group" aria-label="${spokenLabel} w tym tygodniu: ${hours} godz., ${daysText}"><span class="summary-side-label">${label}</span><span class="summary-side-value"><b>${hours}</b> godz.</span><span class="summary-side-days">${daysText}</span></div>`;
+    }).join('');    $('workDays').textContent = workDays;
     $('overtimeHours').textContent = `${formatNumber(overtime)} h`;
     $('absenceDays').textContent = list.filter((item) => item.kind !== 'work').length;
     $('recordCount').textContent = list.length ? `${list.length} ${list.length === 1 ? 'wpis' : 'wpisów'}` : '';

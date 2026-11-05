@@ -667,3 +667,13 @@ button.leave-balance:active { transform: scale(.99); }
   .summary-primary .summary-side .summary-side-value b { font-size: 1.2rem; }
   .summary-primary .summary-side > span { font-size: .62rem; }
 }
+
+/* --- 1.9.0: kafelki nieobecności w podsumowaniu tygodnia --- */
+.summary-sides { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; max-width: 66%; }
+.summary-primary > div:first-child { flex: 1 1 0; min-width: 0; }
+.summary-sides:empty { display: none; }
+.summary-primary .summary-side { margin-left: 0; text-align: right; }
+.summary-primary .summary-side.sick { background: var(--red-soft); }
+.summary-primary .summary-side.sick > .summary-side-label { color: var(--red); }
+.summary-primary .summary-side.child_sick { background: var(--teal-soft); }
+.summary-primary .summary-side.child_sick > .summary-side-label { color: var(--teal); }
