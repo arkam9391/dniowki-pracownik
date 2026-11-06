@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.9.1';
+  const APP_VERSION = '1.9.2';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-06';
   const MAX_ENTRIES = 20000;
@@ -1359,6 +1359,20 @@
     $('leavePoolAdjust').value = next;
     updateLeavePoolPreview();
   }));
+  // Widoczny przycisk „Zwiń” na końcu każdej podpowiedzi.
+  leaveBalanceDialog.querySelectorAll('.help-popover').forEach((popover) => {
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'help-close';
+    close.textContent = 'Zwiń ▲';
+    close.addEventListener('click', () => {
+      popover.hidden = true;
+      const opener = leaveBalanceDialog.querySelector(`[aria-controls="${popover.id}"]`);
+      opener.setAttribute('aria-expanded', 'false');
+      opener.focus();
+    });
+    popover.appendChild(close);
+  });
   leaveBalanceDialog.querySelectorAll('.help-button').forEach((button) => button.addEventListener('click', () => {
     const popover = $(button.getAttribute('aria-controls'));
     const open = popover.hidden;

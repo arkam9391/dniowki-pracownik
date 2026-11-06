@@ -1,6 +1,6 @@
 // Przy każdej publikacji zmieniającej zasoby podnieś wersję tutaj oraz APP_VERSION/APP_BUILD w app.js.
 const CACHE_PREFIX = 'dniowki-app-';
-const CACHE_NAME = `${CACHE_PREFIX}v1.9.1-2026-11-06`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.9.2-2026-11-06`;
 const APP_SHELL = [
   './',
   './index.html',

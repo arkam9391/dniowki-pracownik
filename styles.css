@@ -685,3 +685,6 @@ button.leave-balance:active { transform: scale(.99); }
 .missing-days-list button { display: flex; flex: 1 1 0; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; min-height: 38px; padding: 3px 0; border-radius: 10px; line-height: 1.1; }
 .missing-days-list button span { font-size: .56rem; font-weight: 800; letter-spacing: .02em; }
 .missing-days-list button b { font-size: .9rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+
+/* --- 1.9.2: przycisk „Zwiń” w podpowiedziach --- */
+.help-close { display: block; min-height: 38px; margin: 10px 0 0 auto; padding: 0 16px; border: 1px solid var(--blue); border-radius: 10px; background: var(--blue-soft); color: var(--blue); font-size: .82rem; font-weight: 800; cursor: pointer; }
