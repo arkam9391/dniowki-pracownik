@@ -1,0 +1,122 @@
+[
+    {
+        "version":  "1.10.0",
+        "date":  "2026-11-06",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Przy nowej wersji zobaczysz tu krótką listę zmian"
+                      },
+                      {
+                          "tag":  "new",
+                          "text":  "Historia zmian: Ustawienia, O aplikacji, Co nowego"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.9.2",
+        "date":  "2026-11-06",
+        "items":  [
+                      {
+                          "tag":  "fix",
+                          "text":  "Przycisk „Zwiń” w podpowiedziach „?” w oknie puli urlopu"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.9.1",
+        "date":  "2026-11-06",
+        "items":  [
+                      {
+                          "tag":  "fix",
+                          "text":  "Belka „Dodaj dzień” mieści cały tydzień na ekranie"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.9.0",
+        "date":  "2026-11-05",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Kafelki „Urlop” i „Chorobowe” w podsumowaniu tygodnia, tylko gdy są takie dni"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.7.0",
+        "date":  "2026-11-05",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Zaplanowany urlop widać na liście dni urlopowych"
+                      },
+                      {
+                          "tag":  "fix",
+                          "text":  "Zakładka Urlopy jest bardziej zwarta"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.6.0",
+        "date":  "2026-11-05",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Pole „Stary urlop” i przyciski +/− przy korekcie w puli urlopu"
+                      },
+                      {
+                          "tag":  "new",
+                          "text":  "Znaczki „?” z wyjaśnieniem zasad urlopu (staż, termin 30 września)"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.5.0",
+        "date":  "2026-11-05",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Kafelek „Pozostało do wykorzystania” w zakładce Urlopy z ustawianiem puli i korekty"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.4.0",
+        "date":  "2026-11-02",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Przyciski „Dodaj dzień” z brakującymi dniami tygodnia"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.3.0",
+        "date":  "2026-11-02",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Święta będące dniami wolnymi widać w Kalendarzu"
+                      },
+                      {
+                          "tag":  "fix",
+                          "text":  "Ekran przesunięty w dół, żeby nie wchodził pod pasek stanu iPhone’a"
+                      }
+                  ]
+    },
+    {
+        "version":  "1.2.0",
+        "date":  "2026-10-27",
+        "items":  [
+                      {
+                          "tag":  "new",
+                          "text":  "Statystyki z normą miesiąca i nadgodzinami"
+                      },
+                      {
+                          "tag":  "new",
+                          "text":  "Puste dni w Kalendarzu można dotknąć, aby dodać wpis"
+                      }
+                  ]
+    }
+]

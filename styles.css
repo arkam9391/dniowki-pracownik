@@ -688,3 +688,30 @@ button.leave-balance:active { transform: scale(.99); }
 
 /* --- 1.9.2: przycisk „Zwiń” w podpowiedziach --- */
 .help-close { display: block; min-height: 38px; margin: 10px 0 0 auto; padding: 0 16px; border: 1px solid var(--blue); border-radius: 10px; background: var(--blue-soft); color: var(--blue); font-size: .82rem; font-weight: 800; cursor: pointer; }
+
+/* --- 1.10.0: lista zmian przy aktualizacji --- */
+.update-prompt { grid-template-columns: 42px minmax(0, 1fr); align-items: start; max-height: 74dvh; overflow-y: auto; }
+.update-prompt-notes { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); }
+.update-prompt-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.update-prompt-actions button { min-height: 40px; padding: 0 14px; font-size: .8rem; }
+.update-notes-heading { margin: 0 0 6px; color: var(--muted); font-size: .72rem; font-weight: 800; }
+.change-row { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 8px; font-size: .84rem; line-height: 1.35; }
+.change-tag { flex: 0 0 auto; margin-top: 1px; padding: 2px 8px; border-radius: 999px; font-size: .66rem; font-weight: 800; }
+.change-tag.new { background: var(--blue-soft); color: var(--blue); }
+.change-tag.fix { background: var(--teal-soft); color: var(--teal); }
+.change-version { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 6px; font-size: .8rem; font-weight: 800; }
+.change-version:first-child { margin-top: 0; }
+.change-version span { color: var(--muted); font-size: .72rem; font-weight: 600; }
+.change-more { color: var(--muted); font-size: .76rem; }
+.whats-new-dialog { max-height: 90dvh; overflow-y: auto; }
+.whats-new-panel { padding: 22px 18px 18px; }
+.whats-new-head { display: grid; justify-items: center; gap: 2px; margin-bottom: 14px; text-align: center; }
+.whats-new-icon { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 6px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); }
+.whats-new-icon svg { width: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.whats-new-head h2 { margin: 0; font-size: 1.2rem; letter-spacing: -.02em; }
+.whats-new-head p { margin: 0; color: var(--muted); font-size: .8rem; }
+.whats-new-head p:empty { display: none; }
+.whats-new-actions { margin-top: 14px; }
+.whats-new-hint { margin: 10px 0 0; color: var(--muted); font-size: .74rem; text-align: center; }
+.whats-new-hint[hidden] { display: none; }
+.whats-new-open { width: 100%; margin-top: 10px; }

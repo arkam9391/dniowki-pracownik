@@ -253,6 +253,7 @@
           <h3 id="aboutHeading">O aplikacji</h3>
         </div>
         <p class="settings-note" id="appVersion"></p>
+        <button class="secondary-form-button whats-new-open" id="openWhatsNew" type="button">Co nowego</button>
       </section>
     </section>
 
@@ -560,13 +561,34 @@
   </dialog>
 
 
+  <dialog class="pdf-dialog whats-new-dialog" id="whatsNewDialog" aria-labelledby="whatsNewTitle">
+    <div class="whats-new-panel">
+      <div class="whats-new-head">
+        <div class="whats-new-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </div>
+        <h2 id="whatsNewTitle">Co nowego</h2>
+        <p id="whatsNewSubtitle"></p>
+      </div>
+      <div class="change-list" id="whatsNewList"></div>
+      <div class="whats-new-actions">
+        <button class="primary-form-button" id="closeWhatsNew" type="button">Rozumiem</button>
+        <p class="whats-new-hint" id="whatsNewHint">Starsze zmiany: Ustawienia, O aplikacji, Co nowego.</p>
+      </div>
+    </div>
+  </dialog>
+
   <aside class="update-prompt" id="updatePrompt" role="status" aria-live="polite" hidden>
     <div class="update-prompt-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg>
     </div>
     <div class="update-prompt-copy">
-      <strong>Nowa wersja jest gotowa</strong>
-      <span>Zaktualizuj bez utraty zapisanych danych.</span>
+      <strong id="updateTitle">Nowa wersja jest gotowa</strong>
+      <span>Pobrana w tle. Zaktualizuj bez utraty zapisanych danych.</span>
+    </div>
+    <div class="update-prompt-notes" id="updateNotes" hidden>
+      <p class="update-notes-heading">Co nowego</p>
+      <div id="updateNotesList"></div>
     </div>
     <div class="update-prompt-actions">
       <button type="button" id="dismissUpdate">Później</button>

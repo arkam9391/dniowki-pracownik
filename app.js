@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.9.2';
+  const APP_VERSION = '1.10.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-06';
   const MAX_ENTRIES = 20000;
@@ -1696,6 +1696,109 @@
     $('archiveStatus').textContent = 'Przywrócono dane sprzed importu.';
   });
 
+  // --- Co nowego: lista zmian przy aktualizacji (changelog.json) ---
+  const SEEN_VERSION_KEY = 'dniowki.seen-version.v1';
+  const whatsNewDialog = $('whatsNewDialog');
+
+  function compareVersions(a, b) {
+    const left = String(a).split('.').map((part) => parseInt(part, 10) || 0);
+    const right = String(b).split('.').map((part) => parseInt(part, 10) || 0);
+    for (let index = 0; index < 3; index += 1) {
+      if ((left[index] || 0) !== (right[index] || 0)) return (left[index] || 0) - (right[index] || 0);
+    }
+    return 0;
+  }
+
+  // fresh = true omija kopię z pamięci podręcznej aplikacji (potrzebne przed aktualizacją, gdy nowy plik jest dopiero na serwerze).
+  async function loadChangelog(fresh = false) {
+    try {
+      const response = await fetch(fresh ? `./changelog.json?t=${Date.now()}` : './changelog.json', { cache: 'no-store' });
+      if (!response.ok) return [];
+      const list = await response.json();
+      return (Array.isArray(list) ? list : [])
+        .filter((entry) => entry && typeof entry.version === 'string' && Array.isArray(entry.items))
+        .map((entry) => ({
+          version: entry.version,
+          date: typeof entry.date === 'string' ? entry.date : '',
+          items: entry.items
+            .filter((item) => item && typeof item.text === 'string' && (!item.admin || APP_EDITION === 'administrator'))
+            .map((item) => ({ tag: item.tag === 'new' ? 'new' : 'fix', text: item.text.slice(0, 160) }))
+        }))
+        .filter((entry) => entry.items.length)
+        .sort((a, b) => compareVersions(b.version, a.version));
+    } catch { return []; }
+  }
+
+  function changeListHTML(entries, { showVersions = false, maxItems = Infinity } = {}) {
+    let remaining = maxItems;
+    let truncated = false;
+    const parts = [];
+    entries.forEach((entry) => {
+      if (remaining <= 0) { truncated = true; return; }
+      const items = entry.items.slice(0, remaining);
+      if (items.length < entry.items.length) truncated = true;
+      remaining -= items.length;
+      if (showVersions) parts.push(`<div class="change-version">Wersja ${escapeHTML(entry.version)}${entry.date ? `<span>${escapeHTML(entry.date)}</span>` : ''}</div>`);
+      items.forEach((item) => {
+        parts.push(`<div class="change-row"><span class="change-tag ${item.tag}">${item.tag === 'new' ? 'Nowe' : 'Lepiej'}</span><span>${escapeHTML(item.text)}</span></div>`);
+      });
+    });
+    if (truncated) parts.push('<div class="change-more">…oraz inne drobne zmiany</div>');
+    return parts.join('');
+  }
+
+  function rememberSeenVersion() {
+    try { localStorage.setItem(SEEN_VERSION_KEY, APP_VERSION); } catch { /* bez zapisu okno pokaże się ponownie */ }
+  }
+
+  function openWhatsNew(entries, { title, subtitle, showVersions }) {
+    $('whatsNewTitle').textContent = title;
+    $('whatsNewSubtitle').textContent = subtitle;
+    $('whatsNewList').innerHTML = changeListHTML(entries, { showVersions });
+    $('whatsNewHint').hidden = showVersions;
+    whatsNewDialog.showModal();
+  }
+
+  function checkWhatsNew() {
+    let seen = null;
+    let hasData = false;
+    try {
+      seen = localStorage.getItem(SEEN_VERSION_KEY);
+      hasData = Boolean(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(SETTINGS_KEY));
+    } catch { return; }
+    if (seen === APP_VERSION) return;
+    if (!seen && !hasData) { rememberSeenVersion(); return; }
+    loadChangelog().then((entries) => {
+      const fresh = entries.filter((entry) => compareVersions(entry.version, APP_VERSION) <= 0
+        && (seen ? compareVersions(entry.version, seen) > 0 : entry.version === APP_VERSION)).slice(0, 4);
+      if (!fresh.length) { rememberSeenVersion(); return; }
+      openWhatsNew(fresh, { title: `Zaktualizowano do wersji ${APP_VERSION}`, subtitle: 'Twoje dane zostały bez zmian.', showVersions: fresh.length > 1 });
+    });
+  }
+
+  $('closeWhatsNew').addEventListener('click', () => whatsNewDialog.close());
+  whatsNewDialog.addEventListener('close', rememberSeenVersion);
+  $('openWhatsNew').addEventListener('click', () => {
+    loadChangelog().then((entries) => {
+      if (!entries.length) {
+        window.alert('Nie udało się wczytać listy zmian. Spróbuj ponownie po połączeniu z internetem.');
+        return;
+      }
+      openWhatsNew(entries.slice(0, 8), { title: 'Co nowego', subtitle: `Wersja ${APP_VERSION}`, showVersions: true });
+    });
+  });
+
+  // Przed aktualizacją: krótka lista zmian z nowej wersji pod komunikatem.
+  function showUpdateNotes() {
+    loadChangelog(true).then((entries) => {
+      const newer = entries.filter((entry) => compareVersions(entry.version, APP_VERSION) > 0);
+      if (!newer.length) return;
+      $('updateTitle').textContent = `Dostępna nowa wersja ${newer[0].version}`;
+      $('updateNotesList').innerHTML = changeListHTML(newer, { showVersions: newer.length > 1, maxItems: 6 });
+      $('updateNotes').hidden = false;
+    });
+  }
+
   function registerAppUpdates() {
     if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
     const prompt = $('updatePrompt');
@@ -1708,7 +1811,10 @@
 
     const offerUpdate = (worker) => {
       waitingWorker = worker;
-      if (!dismissed) prompt.hidden = false;
+      if (!dismissed) {
+        prompt.hidden = false;
+        showUpdateNotes();
+      }
     };
 
     dismissButton.addEventListener('click', () => {
@@ -1759,6 +1865,7 @@
   safely(render);
   $('appVersion').textContent = `Dniówki, wersja ${APP_VERSION} (${APP_BUILD}), edycja: ${APP_EDITION}. Aktualizacje pobierają się w tle; przeładowanie następuje po wybraniu „Zaktualizuj”.`;
   registerAppUpdates();
+  checkWhatsNew();
   navigator.storage?.persist?.().catch(() => {});
 
   window.addEventListener('storage', (event) => {
