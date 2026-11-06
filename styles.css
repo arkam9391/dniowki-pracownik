@@ -677,3 +677,11 @@ button.leave-balance:active { transform: scale(.99); }
 .summary-primary .summary-side.sick > .summary-side-label { color: var(--red); }
 .summary-primary .summary-side.child_sick { background: var(--teal-soft); }
 .summary-primary .summary-side.child_sick > .summary-side-label { color: var(--teal); }
+
+/* --- 1.9.1: zwarta belka „Dodaj dzień” (cały tydzień na szerokości ekranu) --- */
+.missing-days { gap: 8px; }
+.missing-days > span { width: min-content; flex: 0 0 auto; font-size: .68rem; line-height: 1.15; }
+.missing-days-list { display: flex; flex: 1 1 0; min-width: 0; gap: 4px; overflow: visible; padding: 0; }
+.missing-days-list button { display: flex; flex: 1 1 0; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; min-height: 38px; padding: 3px 0; border-radius: 10px; line-height: 1.1; }
+.missing-days-list button span { font-size: .56rem; font-weight: 800; letter-spacing: .02em; }
+.missing-days-list button b { font-size: .9rem; font-weight: 850; font-variant-numeric: tabular-nums; }

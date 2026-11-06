@@ -6,9 +6,9 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.9.0';
+  const APP_VERSION = '1.9.1';
   const APP_EDITION = 'pracownik';
-  const APP_BUILD = '2026-11-05';
+  const APP_BUILD = '2026-11-06';
   const MAX_ENTRIES = 20000;
   const KINDS = ['work', 'vacation', 'sick', 'holiday', 'child_sick'];
   const WEEKDAYS = ['NIE', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SOB'];
@@ -421,7 +421,7 @@
       const spoken = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
       const holiday = holidayName(key);
       const holidayNote = holiday ? `, święto: ${holiday}` : '';
-      return `<button type="button" class="${holiday ? 'holiday' : ''}" data-add-day="${key}" aria-label="Dodaj dzień pracy: ${spoken}${holidayNote}">${WEEKDAYS[date.getDay()]} ${date.getDate()}</button>`;
+      return `<button type="button" class="${holiday ? 'holiday' : ''}" data-add-day="${key}" aria-label="Dodaj dzień pracy: ${spoken}${holidayNote}"><span>${WEEKDAYS[date.getDay()]}</span><b>${date.getDate()}</b></button>`;
     }).join('');
   }
 
