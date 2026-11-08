@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.11.0",
+    "date": "2026-11-08",
+    "items": [
+      {
+        "tag": "new",
+        "text": "Ferie zimowe w Kalendarzu: wybierz województwo w Ustawieniach"
+      }
+    ]
+  },
+  {
     "version": "1.10.0",
     "date": "2026-11-06",
     "items": [

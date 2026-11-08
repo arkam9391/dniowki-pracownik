@@ -6,9 +6,9 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.10.0';
+  const APP_VERSION = '1.11.0';
   const APP_EDITION = 'pracownik';
-  const APP_BUILD = '2026-11-06';
+  const APP_BUILD = '2026-11-08';
   const MAX_ENTRIES = 20000;
   const KINDS = ['work', 'vacation', 'sick', 'holiday', 'child_sick'];
   const WEEKDAYS = ['NIE', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SOB'];
@@ -20,6 +20,14 @@
     sick: '<svg viewBox="0 0 24 24"><path d="M6 8h12v12H6zM9 8V5h6v3M12 11v6M9 14h6"></path></svg>',
     holiday: '<svg viewBox="0 0 24 24"><path d="M5 6h14v14H5zM8 3v5M16 3v5M5 10h14M9 14h6"></path></svg>',
     child_sick: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.2-7-9.3A3.7 3.7 0 0 1 12 9a3.7 3.7 0 0 1 7 1.7C19 15.8 12 20 12 20zM12 10v5M9.5 12.5h5"></path></svg>'
+  };
+
+  const VOIVODESHIPS = {
+    dolnoslaskie: 'dolnośląskie', 'kujawsko-pomorskie': 'kujawsko-pomorskie', lubelskie: 'lubelskie', lubuskie: 'lubuskie',
+    lodzkie: 'łódzkie', malopolskie: 'małopolskie', mazowieckie: 'mazowieckie', opolskie: 'opolskie',
+    podkarpackie: 'podkarpackie', podlaskie: 'podlaskie', pomorskie: 'pomorskie', slaskie: 'śląskie',
+    swietokrzyskie: 'świętokrzyskie', 'warminsko-mazurskie': 'warmińsko-mazurskie', wielkopolskie: 'wielkopolskie',
+    zachodniopomorskie: 'zachodniopomorskie'
   };
 
   let entries = loadEntries();
@@ -122,6 +130,24 @@
     return publicHolidays(Number(key.slice(0, 4)))[key] || '';
   }
 
+  // Ferie zimowe: dane w ferie.json (rok -> terminy z listą województw), ładowane po starcie.
+  let winterBreaks = {};
+
+  function winterBreakFor(key) {
+    const voivodeship = settings.voivodeship;
+    if (!voivodeship) return null;
+    const terms = winterBreaks[key.slice(0, 4)];
+    if (!Array.isArray(terms)) return null;
+    return terms.find((term) => term && Array.isArray(term.woj) && term.woj.includes(voivodeship) && key >= term.od && key <= term.do) || null;
+  }
+
+  function loadWinterBreaks() {
+    return fetch('./ferie.json', { cache: 'no-cache' })
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((data) => { if (data && typeof data === 'object') winterBreaks = data; })
+      .catch(() => {});
+  }
+
   function validTime(value) {
     return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
   }
@@ -212,6 +238,7 @@
       employeeName: typeof value?.employeeName === 'string' ? value.employeeName.slice(0, 100) : '',
       leaveRequestPlace: typeof value?.leaveRequestPlace === 'string' ? value.leaveRequestPlace.slice(0, 80) : '',
       workerName: typeof value?.workerName === 'string' ? value.workerName.slice(0, 100) : '',
+      voivodeship: typeof value?.voivodeship === 'string' && Object.prototype.hasOwnProperty.call(VOIVODESHIPS, value.voivodeship) ? value.voivodeship : '',
       vacationPools: sanitizeVacationPools(value?.vacationPools),
       workdays
     };
@@ -446,9 +473,10 @@
       const key = localDateKey(date);
       const entry = entries[key] && !entries[key].deleted ? entries[key] : null;
       const holiday = holidayName(key);
-      const todayClass = (key === todayKey ? ' today' : '') + (holiday ? ' public' : '');
-      const holidayNote = holiday ? `, święto: ${holiday}` : '';
-      const holidayTitle = holiday ? ` title="${escapeHTML(holiday)}"` : '';
+      const winterBreak = winterBreakFor(key);
+      const todayClass = (key === todayKey ? ' today' : '') + (holiday ? ' public' : '') + (winterBreak ? ' ferie' : '');
+      const holidayNote = (holiday ? `, święto: ${holiday}` : '') + (winterBreak ? ', ferie zimowe' : '');
+      const holidayTitle = holiday || winterBreak ? ` title="${escapeHTML(holiday || 'Ferie zimowe')}"` : '';
       if (entry) {
         cells.push(`<button class="calendar-day ${entry.kind}${todayClass}" type="button" data-calendar-key="${key}"${holidayTitle} aria-label="${day} ${MONTHS[month].toLowerCase()} ${year}: ${KIND_LABELS[entry.kind]}${holidayNote}"><span>${day}</span></button>`);
       } else {
@@ -790,6 +818,8 @@
     document.querySelectorAll('[data-workday]').forEach((input) => {
       input.checked = settings.workdays.includes(Number(input.dataset.workday));
     });
+    $('voivodeship').value = settings.voivodeship;
+    $('legendFerie').hidden = !settings.voivodeship;
     $('automaticStatus').classList.toggle('manual', !settings.automaticEntries);
     $('automaticStatus').textContent = settings.automaticEntries && settings.workdays.length
       ? 'Automat jest włączony — w zaznaczone dni aplikacja utworzy wpis po otwarciu.'
@@ -1426,6 +1456,11 @@
     if (settings.automaticEntries) generateMissingWorkdays();
     render();
   });
+  $('voivodeship').addEventListener('change', (event) => {
+    settings.voivodeship = Object.prototype.hasOwnProperty.call(VOIVODESHIPS, event.target.value) ? event.target.value : '';
+    saveSettings();
+    render();
+  });
   $('defaultStartTime').addEventListener('change', (event) => {
     settings.startTime = validTime(event.target.value) ? event.target.value : '06:00';
     saveSettings();
@@ -1866,6 +1901,7 @@
   $('appVersion').textContent = `Dniówki, wersja ${APP_VERSION} (${APP_BUILD}), edycja: ${APP_EDITION}. Aktualizacje pobierają się w tle; przeładowanie następuje po wybraniu „Zaktualizuj”.`;
   registerAppUpdates();
   checkWhatsNew();
+  loadWinterBreaks().then(() => safely(render));
   navigator.storage?.persist?.().catch(() => {});
 
   window.addEventListener('storage', (event) => {
