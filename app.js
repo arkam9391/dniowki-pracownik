@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.11.0';
+  const APP_VERSION = '1.12.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-08';
   const MAX_ENTRIES = 20000;
@@ -1456,6 +1456,7 @@
     if (settings.automaticEntries) generateMissingWorkdays();
     render();
   });
+
   $('voivodeship').addEventListener('change', (event) => {
     settings.voivodeship = Object.prototype.hasOwnProperty.call(VOIVODESHIPS, event.target.value) ? event.target.value : '';
     saveSettings();
