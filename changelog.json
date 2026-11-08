@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.13.0",
+    "date": "2026-11-08",
+    "items": [
+      {
+        "tag": "new",
+        "text": "Przycisk „Terminy ferii” w Kalendarzu: terminy dla wszystkich województw (po wybraniu swojego w Ustawieniach)"
+      }
+    ]
+  },
+  {
     "version": "1.11.0",
     "date": "2026-11-08",
     "items": [

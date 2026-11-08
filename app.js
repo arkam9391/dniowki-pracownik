@@ -6,7 +6,7 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.12.0';
+  const APP_VERSION = '1.13.0';
   const APP_EDITION = 'pracownik';
   const APP_BUILD = '2026-11-08';
   const MAX_ENTRIES = 20000;
@@ -820,6 +820,7 @@
     });
     $('voivodeship').value = settings.voivodeship;
     $('legendFerie').hidden = !settings.voivodeship;
+    $('openFerie').hidden = !settings.voivodeship;
     $('automaticStatus').classList.toggle('manual', !settings.automaticEntries);
     $('automaticStatus').textContent = settings.automaticEntries && settings.workdays.length
       ? 'Automat jest włączony — w zaznaczone dni aplikacja utworzy wpis po otwarciu.'
@@ -1456,6 +1457,41 @@
     if (settings.automaticEntries) generateMissingWorkdays();
     render();
   });
+  const ferieDialog = $('ferieDialog');
+  let ferieYear = new Date().getFullYear();
+  const ferieDateFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long' });
+
+  function ferieYears() {
+    return Object.keys(winterBreaks).filter((year) => /^\d{4}$/.test(year) && Array.isArray(winterBreaks[year])).map(Number).sort((a, b) => a - b);
+  }
+
+  function renderFerie() {
+    const years = ferieYears();
+    $('ferieYear').textContent = ferieYear;
+    $('feriePrevYear').disabled = !years.some((year) => year < ferieYear);
+    $('ferieNextYear').disabled = !years.some((year) => year > ferieYear);
+    const terms = (winterBreaks[String(ferieYear)] || []).filter((term) => term && isValidDateKey(term.od) && isValidDateKey(term.do) && Array.isArray(term.woj))
+      .sort((a, b) => a.od.localeCompare(b.od));
+    $('ferieList').innerHTML = terms.length ? terms.map((term) => {
+      const from = dateFromKey(term.od);
+      const to = dateFromKey(term.do);
+      const names = term.woj.filter((id) => VOIVODESHIPS[id]).sort((a, b) => VOIVODESHIPS[a].localeCompare(VOIVODESHIPS[b], 'pl'));
+      const own = settings.voivodeship && names.includes(settings.voivodeship);
+      return `<section class="ferie-term${own ? ' own' : ''}"><h3>${ferieDateFormat.format(from)} – ${ferieDateFormat.format(to)}${own ? '<span>Twoje</span>' : ''}</h3><ul>${names.map((id) => `<li${id === settings.voivodeship ? ' class="own"' : ''}>${escapeHTML(VOIVODESHIPS[id])}</li>`).join('')}</ul></section>`;
+    }).join('') : '<p class="ferie-empty">Brak danych o feriach dla tego roku.</p>';
+  }
+
+  $('openFerie').addEventListener('click', () => {
+    const years = ferieYears();
+    const today = localDateKey(new Date());
+    const upcoming = years.find((year) => winterBreaks[String(year)].some((term) => term && term.do >= today));
+    ferieYear = upcoming || years[years.length - 1] || new Date().getFullYear();
+    renderFerie();
+    ferieDialog.showModal();
+  });
+  $('feriePrevYear').addEventListener('click', () => { ferieYear -= 1; renderFerie(); });
+  $('ferieNextYear').addEventListener('click', () => { ferieYear += 1; renderFerie(); });
+  $('closeFerie').addEventListener('click', () => ferieDialog.close());
 
   $('voivodeship').addEventListener('change', (event) => {
     settings.voivodeship = Object.prototype.hasOwnProperty.call(VOIVODESHIPS, event.target.value) ? event.target.value : '';
