@@ -6,9 +6,9 @@
   const ARCHIVE_STATE_KEY = 'dniowki.archive-state.v1';
   const ARCHIVE_FILENAME = 'dniowki-archiwum.json';
   const PRE_IMPORT_KEY = 'dniowki.pre-import.v1';
-  const APP_VERSION = '1.13.0';
+  const APP_VERSION = '1.13.1';
   const APP_EDITION = 'pracownik';
-  const APP_BUILD = '2026-11-08';
+  const APP_BUILD = '2026-11-09';
   const MAX_ENTRIES = 20000;
   const KINDS = ['work', 'vacation', 'sick', 'holiday', 'child_sick'];
   const WEEKDAYS = ['NIE', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SOB'];
@@ -109,7 +109,7 @@
     const fixed = (month, day, name) => add(new Date(year, month - 1, day, 12), name);
     const easter = easterSunday(year);
     fixed(1, 1, 'Nowy Rok');
-    fixed(1, 6, 'Trzech Króli');
+    if (year >= 2011) fixed(1, 6, 'Trzech Króli');
     add(easter, 'Wielkanoc');
     add(addDays(easter, 1), 'Poniedziałek Wielkanocny');
     fixed(5, 1, 'Święto Pracy');
@@ -320,6 +320,15 @@
     });
     if (missing.length) saveEntries();
     return missing.length > 0;
+  }
+
+  // Uzupełnianie przy otwarciu aplikacji: dłuższą przerwę (ponad 10 dni) automat dopisuje dopiero po potwierdzeniu.
+  // Odmowa obowiązuje do zamknięcia aplikacji, żeby pytanie nie wracało przy każdym powrocie na ekran.
+  let autofillDeclined = false;
+  function autofillOnOpen() {
+    if (autofillDeclined) return false;
+    if (!confirmBulkAutofill()) { autofillDeclined = true; return false; }
+    return generateMissingWorkdays();
   }
 
   function confirmBulkAutofill() {
@@ -714,7 +723,9 @@
     const keys = [];
     const days = settings.workdays.length ? settings.workdays : [1, 2, 3, 4, 5];
     for (let date = dateFromKey(fromKey), end = dateFromKey(toKey); date <= end; date = addDays(date, 1)) {
-      if (days.includes(date.getDay())) keys.push(localDateKey(date));
+      // Święto ustawowo wolne nie jest dniem urlopu, więc nie trafia do kalendarza i nie zmniejsza puli.
+      const key = localDateKey(date);
+      if (days.includes(date.getDay()) && !holidayName(key)) keys.push(key);
     }
     return keys;
   }
@@ -810,10 +821,12 @@
   }
 
   function renderSettings() {
+    // Pole, w którym użytkownik właśnie pisze, nie jest nadpisywane (np. po powrocie do aplikacji).
+    const setValue = (id, value) => { if (document.activeElement !== $(id)) $(id).value = value; };
     $('automaticEntries').checked = settings.automaticEntries;
-    $('defaultStartTime').value = settings.startTime;
-    $('defaultWorkHours').value = settings.regularHours;
-    $('defaultEmployeeName').value = settings.employeeName;
+    setValue('defaultStartTime', settings.startTime);
+    setValue('defaultWorkHours', settings.regularHours);
+    setValue('defaultEmployeeName', settings.employeeName);
     document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
     document.querySelectorAll('[data-workday]').forEach((input) => {
       input.checked = settings.workdays.includes(Number(input.dataset.workday));
@@ -922,14 +935,17 @@
 
   function vacationCounts(year) {
     const todayKey = localDateKey(new Date());
+    const deadlineKey = localDateKey(new Date(year, OLD_LEAVE_DEADLINE.month, OLD_LEAVE_DEADLINE.day, 12));
     let used = 0;
     let planned = 0;
+    let byDeadline = 0;
     Object.values(entries).forEach((entry) => {
       if (entry.deleted || entry.kind !== 'vacation' || dateFromKey(entry.date).getFullYear() !== year) return;
       if (entry.date <= todayKey) used += 1;
       else planned += 1;
+      if (entry.date <= deadlineKey) byDeadline += 1;
     });
-    return { used, planned };
+    return { used, planned, byDeadline };
   }
 
   // Stan urlopu w roku. Niewykorzystane dni z poprzedniego roku przechodzą jako „stary urlop”,
@@ -943,13 +959,15 @@
     const total = stored ? stored.total : previous.total;
     const adjustment = stored ? stored.adjustment : 0;
     const carry = explicitCarry ? stored.carry : autoCarry;
-    const { used, planned } = vacationCounts(year);
+    const { used, planned, byDeadline } = vacationCounts(year);
     const usedAll = used + planned;
     const oldUsed = Math.min(carry, usedAll);
     const remainingOld = carry - oldUsed;
     const remainingCurrent = total + adjustment - (usedAll - oldUsed);
+    // Część starego urlopu, której nie pokrywają dni urlopu wypadające do terminu (30 września).
+    const oldOverdue = Math.max(0, carry - byDeadline);
     return {
-      year, total, adjustment, carry, autoCarry, used, planned, remainingOld, remainingCurrent,
+      year, total, adjustment, carry, autoCarry, used, planned, remainingOld, remainingCurrent, oldOverdue,
       carryAuto: Boolean(previous) && !explicitCarry,
       rolled: !stored,
       remaining: remainingOld + remainingCurrent
@@ -957,12 +975,15 @@
   }
 
   function oldLeaveStatus(summary) {
-    if (!summary || summary.remainingOld <= 0 || summary.year !== new Date().getFullYear()) return null;
+    if (!summary || summary.oldOverdue <= 0 || summary.year !== new Date().getFullYear()) return null;
+    const today = new Date();
+    const todayNoon = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
     const deadline = new Date(summary.year, OLD_LEAVE_DEADLINE.month, OLD_LEAVE_DEADLINE.day, 12);
-    const daysLeft = Math.ceil((deadline - new Date()) / 86400000);
-    if (daysLeft < 0) return { level: 'late', text: `Termin wykorzystania starego urlopu (${OLD_LEAVE_DEADLINE.label}) minął.` };
-    if (daysLeft <= 60) return { level: 'soon', text: `Stary urlop: do ${OLD_LEAVE_DEADLINE.label} zostało ${daysLeft} ${daysWord(daysLeft)}.` };
-    return { level: 'info', text: `Stary urlop należy wykorzystać do ${OLD_LEAVE_DEADLINE.label}.` };
+    const daysLeft = Math.round((deadline - todayNoon) / 86400000);
+    const count = `${formatNumber(summary.oldOverdue)} ${daysWord(summary.oldOverdue)}`;
+    if (daysLeft < 0) return { level: 'late', text: `Termin starego urlopu (${OLD_LEAVE_DEADLINE.label}) minął: ${count} nie wykorzystano w terminie.` };
+    if (daysLeft <= 60) return { level: 'soon', text: `Stary urlop: do ${OLD_LEAVE_DEADLINE.label} zostało ${daysLeft} ${daysWord(daysLeft)}, do wykorzystania jeszcze ${count}.` };
+    return { level: 'info', text: `Do ${OLD_LEAVE_DEADLINE.label} wykorzystaj jeszcze ${count} starego urlopu.` };
   }
 
   function renderLeaveBalance() {
@@ -1500,11 +1521,13 @@
   });
   $('defaultStartTime').addEventListener('change', (event) => {
     settings.startTime = validTime(event.target.value) ? event.target.value : '06:00';
+    event.target.value = settings.startTime;
     saveSettings();
     renderSettings();
   });
   $('defaultWorkHours').addEventListener('change', (event) => {
     settings.regularHours = roundToHalf(Math.max(.5, Math.min(24, Number(event.target.value) || 8)));
+    event.target.value = settings.regularHours;
     saveSettings();
     renderSettings();
   });
@@ -1932,9 +1955,10 @@
   if (colorScheme?.addEventListener) colorScheme.addEventListener('change', updateSystemTheme);
   else colorScheme?.addListener?.(updateSystemTheme);
   const safely = (action) => { try { action(); } catch (error) { console.error(error); } };
-  safely(generateMissingWorkdays);
   safely(updateArchiveIndicator);
   safely(render);
+  // Najpierw ekran, potem ewentualne pytanie automatu — okno potwierdzenia nie zasłania pustej strony.
+  window.setTimeout(() => safely(() => { if (autofillOnOpen()) render(); }), 0);
   $('appVersion').textContent = `Dniówki, wersja ${APP_VERSION} (${APP_BUILD}), edycja: ${APP_EDITION}. Aktualizacje pobierają się w tle; przeładowanie następuje po wybraniu „Zaktualizuj”.`;
   registerAppUpdates();
   checkWhatsNew();
@@ -1951,6 +1975,6 @@
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') { generateMissingWorkdays(); render(); }
+    if (document.visibilityState === 'visible') { autofillOnOpen(); render(); }
   });
 })();

@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.13.1",
+    "date": "2026-11-09",
+    "items": [
+      {
+        "tag": "fix",
+        "text": "Urlop z wniosku pomija święta i nie zmniejsza przez nie puli"
+      },
+      {
+        "tag": "fix",
+        "text": "Ostrzeżenie o starym urlopie liczy tylko dni do 30 września"
+      },
+      {
+        "tag": "fix",
+        "text": "Po dłuższej przerwie automat pyta, zanim dopisze dni pracy"
+      }
+    ]
+  },
+  {
     "version": "1.13.0",
     "date": "2026-11-08",
     "items": [
